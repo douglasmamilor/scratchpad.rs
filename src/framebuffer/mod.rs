@@ -75,3 +75,116 @@ impl FrameBuffer {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_framebuffer() {
+        let fb = FrameBuffer::new(800, 600);
+        assert_eq!(fb.width(), 800);
+        assert_eq!(fb.height(), 600);
+        assert_eq!(fb.pitch(), 800 * 4);
+        assert_eq!(fb.pixels.len(), 800 * 600);
+        // Should be initialized to black (0)
+        assert!(fb.pixels.iter().all(|&p| p == 0));
+    }
+
+    #[test]
+    fn test_resize() {
+        let mut fb = FrameBuffer::new(100, 100);
+        assert_eq!(fb.pixels.len(), 10000);
+
+        fb.resize(200, 150);
+        assert_eq!(fb.width(), 200);
+        assert_eq!(fb.height(), 150);
+        assert_eq!(fb.pitch(), 200 * 4);
+        assert_eq!(fb.pixels.len(), 30000);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut fb = FrameBuffer::new(10, 10);
+        let red = 0xFFFF0000u32;
+
+        fb.clear(red);
+        assert!(fb.pixels.iter().all(|&p| p == red));
+    }
+
+    #[test]
+    fn test_set_pixel_valid() {
+        let mut fb = FrameBuffer::new(100, 100);
+        let white = 0xFFFFFFFF;
+
+        fb.set_pixel(50, 50, white);
+        assert_eq!(fb.pixels[50 * 100 + 50], white);
+
+        // Test corners
+        fb.set_pixel(0, 0, white);
+        assert_eq!(fb.pixels[0], white);
+
+        fb.set_pixel(99, 99, white);
+        assert_eq!(fb.pixels[99 * 100 + 99], white);
+    }
+
+    #[test]
+    fn test_set_pixel_out_of_bounds() {
+        let mut fb = FrameBuffer::new(100, 100);
+        let white = 0xFFFFFFFF;
+
+        // These should not panic, just do nothing
+        fb.set_pixel(100, 50, white); // x out of bounds
+        fb.set_pixel(50, 100, white); // y out of bounds
+        fb.set_pixel(200, 200, white); // Both out of bounds
+
+        // Verify nothing was written
+        assert!(fb.pixels.iter().all(|&p| p == 0));
+    }
+
+    #[test]
+    fn test_get_pixel() {
+        let mut fb = FrameBuffer::new(100, 100);
+        let blue = 0xFF0000FF;
+
+        fb.set_pixel(25, 25, blue);
+
+        // Valid coordinates
+        assert_eq!(fb.get_pixel(25, 25), Some(blue));
+        assert_eq!(fb.get_pixel(0, 0), Some(0));
+
+        // Out of bounds
+        assert_eq!(fb.get_pixel(100, 50), None);
+        assert_eq!(fb.get_pixel(50, 100), None);
+        assert_eq!(fb.get_pixel(200, 200), None);
+    }
+
+    #[test]
+    fn test_as_bytes() {
+        let fb = FrameBuffer::new(2, 2);
+        let bytes = fb.as_bytes();
+
+        // 2x2 pixels * 4 bytes per pixel = 16 bytes
+        assert_eq!(bytes.len(), 16);
+    }
+
+    #[test]
+    fn test_pixel_indexing() {
+        let mut fb = FrameBuffer::new(10, 10);
+
+        // Test that pixel indexing is row-major (y * width + x)
+        for y in 0..10 {
+            for x in 0..10 {
+                let color = (y * 10 + x) as u32;
+                fb.set_pixel(x, y, color);
+            }
+        }
+
+        for y in 0..10 {
+            for x in 0..10 {
+                let expected = (y * 10 + x) as u32;
+                assert_eq!(fb.get_pixel(x, y), Some(expected));
+            }
+        }
+    }
+}
