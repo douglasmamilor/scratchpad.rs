@@ -10,7 +10,7 @@ impl<'a> Renderer<'a> {
 
         // Step 1: Determine if the line is steep (> 45 degrees)
         // and if steep, swap x and y coordinates
-        let steep = (x - x0).abs() > (y - y0).abs();
+        let steep = (y - y0).abs() > (x - x0).abs();
         if steep {
             std::mem::swap(&mut x0, &mut y0);
             std::mem::swap(&mut x, &mut y);
@@ -54,4 +54,79 @@ impl<'a> Renderer<'a> {
     }
 
     // pub fn draw_line_aa() {}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_horizontal_line() {
+        let start = (0, 0);
+        let end = (5, 0);
+        let points = Renderer::plot_line(&start, &end);
+
+        let expected = vec![(0, 0), (1, 0), (2, 0), (3, 0), (4, 0)];
+        assert_eq!(points, expected);
+    }
+
+    #[test]
+    fn test_vertical_line() {
+        let start = (0, 0);
+        let end = (0, 5);
+        let points = Renderer::plot_line(&start, &end);
+
+        let expected = vec![(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)];
+        assert_eq!(points, expected);
+    }
+
+    #[test]
+    fn test_diagonal_line() {
+        let start = (0, 0);
+        let end = (3, 3);
+        let points = Renderer::plot_line(&start, &end);
+
+        let expected = vec![(0, 0), (1, 1), (2, 2)];
+        assert_eq!(points, expected);
+    }
+
+    #[test]
+    fn test_reverse_direction() {
+        let start = (5, 0);
+        let end = (0, 0);
+        let points = Renderer::plot_line(&start, &end);
+
+        let expected = vec![(0, 0), (1, 0), (2, 0), (3, 0), (4, 0)];
+        assert_eq!(points, expected);
+    }
+
+    #[test]
+    fn test_steep_line() {
+        let start = (0, 0);
+        let end = (2, 5);
+        let points = Renderer::plot_line(&start, &end);
+
+        // For steep lines, coordinates are swapped
+        let expected = vec![(0, 0), (0, 1), (1, 2), (1, 3), (2, 4)];
+        assert_eq!(points, expected);
+    }
+
+    #[test]
+    fn test_single_point() {
+        let start = (5, 5);
+        let end = (5, 5);
+        let points = Renderer::plot_line(&start, &end);
+
+        assert_eq!(points, vec![]);
+    }
+
+    #[test]
+    fn test_negative_coordinates() {
+        let start = (-2, -2);
+        let end = (2, 2);
+        let points = Renderer::plot_line(&start, &end);
+
+        let expected = vec![(-2, -2), (-1, -1), (0, 0), (1, 1)];
+        assert_eq!(points, expected);
+    }
 }
