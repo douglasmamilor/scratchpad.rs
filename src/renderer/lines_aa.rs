@@ -1,4 +1,5 @@
 use super::Renderer;
+use crate::color::Color;
 
 #[inline]
 fn ipart(x: f32) -> i32 {
@@ -18,50 +19,50 @@ fn rfpart(x: f32) -> f32 {
 }
 
 impl<'a> Renderer<'a> {
-    // draw antialiased line using Wu's line drawing algorithm
-    pub fn plot_line_aa(start: &(f32, f32), end: &(f32, f32)) -> Vec<(i32, i32, f32)> {
-        let (mut x0, mut y0) = *start;
-        let (mut x, mut y) = *end;
+    fn visit_line_points_aa<F>(start: (f32, f32), end: (f32, f32), mut visit: F)
+    where
+        F: FnMut((i32, i32, f32)) -> bool,
+    {
+        let (mut x0, mut y0) = start;
+        let (mut x1, mut y1) = end;
 
-        // Step 1: Normalise
-
-        // Determine if the line is steep (> 45 degrees)
-        // and if steep, swap x and y coordinates
-        let steep = (y - y0).abs() > (x - x0).abs();
+        // Determine if the line is steep (> 45 degrees) and normalise coordinates
+        let steep = (y1 - y0).abs() > (x1 - x0).abs();
         if steep {
             std::mem::swap(&mut x0, &mut y0);
-            std::mem::swap(&mut x, &mut y);
+            std::mem::swap(&mut x1, &mut y1);
         }
 
         // If moving right to left, swap start and end points
-        if x0 > x {
-            std::mem::swap(&mut x0, &mut x);
-            std::mem::swap(&mut y0, &mut y);
+        if x0 > x1 {
+            std::mem::swap(&mut x0, &mut x1);
+            std::mem::swap(&mut y0, &mut y1);
         }
 
-        if (x0 == x) && (y0 == y) {
-            let mut pts = Vec::with_capacity(1);
-            if steep {
-                pts.push((y0 as i32, x0 as i32, 1.0));
+        // Early return if the segment collapses to a single point
+        if (x0 == x1) && (y0 == y1) {
+            let point = if steep {
+                (y0 as i32, x0 as i32, 1.0)
             } else {
-                pts.push((x0 as i32, y0 as i32, 1.0));
-            }
-            return pts;
+                (x0 as i32, y0 as i32, 1.0)
+            };
+            let _ = visit(point);
+            return;
         }
 
-        let dx = x - x0;
-        let dy = y - y0;
+        let dx = x1 - x0;
+        let dy = y1 - y0;
         let m = dy / dx;
 
-        // Pre-allocate after normalisation
-        let vec_start = x0.floor() as i32;
-        let vec_end = x.ceil() as i32;
-        // Each column can plot up to 2 pixels
-        // two pixels per column, each with a brightness
-        let mut points: Vec<(i32, i32, f32)> =
-            Vec::with_capacity(((vec_end - vec_start + 1) * 2) as usize);
-
-        // Post-normalisation
+        // Each column can emit up to two pixels with different coverage values
+        let mut emit = |x: i32, y: i32, coverage: f32| -> bool {
+            let point = if steep {
+                (y, x, coverage)
+            } else {
+                (x, y, coverage)
+            };
+            visit(point)
+        };
 
         // Step 2: Process head endpoint (i.e endpoint at x0)
         let mut x_endpt = roundi(x0);
@@ -70,49 +71,68 @@ impl<'a> Renderer<'a> {
         let x_start = x_endpt;
         let y_start = ipart(y_endpt);
 
-        // Wu's algorithm means we paint two pixels, making one dimmer
-        // than the other based on closeness to the real line
-        if steep {
-            points.push((y_start, x_start, rfpart(y_endpt) * x_endpt_gap));
-            points.push((y_start + 1, x_start, fpart(y_endpt) * x_endpt_gap));
-        } else {
-            points.push((x_start, y_start, rfpart(y_endpt) * x_endpt_gap));
-            points.push((x_start, y_start + 1, fpart(y_endpt) * x_endpt_gap));
+        if !emit(x_start, y_start, rfpart(y_endpt) * x_endpt_gap) {
+            return;
+        }
+        if !emit(x_start, y_start + 1, fpart(y_endpt) * x_endpt_gap) {
+            return;
         }
 
         let mut y_nxt = y_endpt + m; // unit step in x direction
 
-        // Step 3: Process tail endpoint (i.e endpoint at x)
-        x_endpt = roundi(x);
-        y_endpt = y + m * (x_endpt as f32 - x);
-        x_endpt_gap = fpart(x + 0.5);
+        // Step 3: Process tail endpoint (i.e endpoint at x1)
+        x_endpt = roundi(x1);
+        y_endpt = y1 + m * (x_endpt as f32 - x1);
+        x_endpt_gap = fpart(x1 + 0.5);
         let x_end = x_endpt;
         let y_end = ipart(y_endpt);
 
         // Step 4: Process intermediate pixels
         for x in (x_start + 1)..x_end {
-            // Wu's algorithm means we paint two pixels, making one dimmer
-            // than the other based on closeness to the real line
-            if steep {
-                points.push((ipart(y_nxt), x, rfpart(y_nxt)));
-                points.push((ipart(y_nxt) + 1, x, fpart(y_nxt)));
-            } else {
-                points.push((x, ipart(y_nxt), rfpart(y_nxt)));
-                points.push((x, ipart(y_nxt) + 1, fpart(y_nxt)));
+            if !emit(x, ipart(y_nxt), rfpart(y_nxt)) {
+                return;
+            }
+            if !emit(x, ipart(y_nxt) + 1, fpart(y_nxt)) {
+                return;
             }
 
             y_nxt += m;
         }
 
-        // Stept 5: Process tail endpoint (i.e endpoint at x)
-        if steep {
-            points.push((y_end, x_end, rfpart(y_endpt) * x_endpt_gap));
-            points.push((y_end + 1, x_end, fpart(y_endpt) * x_endpt_gap));
-        } else {
-            points.push((x_end, y_end, rfpart(y_endpt) * x_endpt_gap));
-            points.push((x_end, y_end + 1, fpart(y_endpt) * x_endpt_gap));
+        // Step 5: Process tail endpoint (i.e endpoint at x1)
+        if !emit(x_end, y_end, rfpart(y_endpt) * x_endpt_gap) {
+            return;
         }
+        if !emit(x_end, y_end + 1, fpart(y_endpt) * x_endpt_gap) {
+            return;
+        }
+    }
 
+    // draw antialiased line using Wu's line drawing algorithm returning visited points
+    pub fn plot_line_aa(start: &(f32, f32), end: &(f32, f32)) -> Vec<(i32, i32, f32)> {
+        let start_floor = start.0.floor() as i32;
+        let end_ceil = end.0.ceil() as i32;
+        let capacity = ((end_ceil - start_floor + 1).max(0) * 2) as usize;
+        let mut points: Vec<(i32, i32, f32)> = Vec::with_capacity(capacity);
+        Renderer::visit_line_points_aa(*start, *end, |point| {
+            points.push(point);
+            true
+        });
         points
+    }
+
+    pub fn draw_line_aa(&mut self, start: (f32, f32), end: (f32, f32), color: &Color) {
+        Renderer::visit_line_points_aa(start, end, |(x, y, coverage)| {
+            let t = coverage.clamp(0.0, 1.0);
+            let scaled = Color::RGBA(
+                (color.r as f32 * t).round() as u8,
+                (color.g as f32 * t).round() as u8,
+                (color.b as f32 * t).round() as u8,
+                (color.a as f32 * t).round() as u8,
+            );
+
+            self.set_pixel((x, y), &scaled);
+            true
+        });
     }
 }
