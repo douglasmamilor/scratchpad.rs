@@ -1,59 +1,69 @@
 use super::Renderer;
+use crate::color::Color;
 
 impl<'a> Renderer<'a> {
-    // draw line using Bresenhams line drawing algorithm
-    pub fn plot_line(start: &(i32, i32), end: &(i32, i32)) -> Vec<(i32, i32)> {
+    fn visit_line_points<F>(start: (i32, i32), end: (i32, i32), mut visit: F)
+    where
+        F: FnMut((i32, i32)) -> bool,
+    {
         let (mut x0, mut y0) = (start.0, start.1);
-        let (mut x, mut y) = (end.0, end.1);
+        let (mut x1, mut y1) = (end.0, end.1);
 
-        // Step 1: Normalise
-
-        // Determine if the line is steep (> 45 degrees)
-        // and if steep, swap x and y coordinates
-        let steep = (y - y0).abs() > (x - x0).abs();
+        // Determine if the line is steep (> 45 degrees) and normalise coordinates
+        let steep = (y1 - y0).abs() > (x1 - x0).abs();
         if steep {
             std::mem::swap(&mut x0, &mut y0);
-            std::mem::swap(&mut x, &mut y);
+            std::mem::swap(&mut x1, &mut y1);
         }
 
         // If moving right to left, swap start and end points
-        if x0 > x {
-            std::mem::swap(&mut x0, &mut x);
-            std::mem::swap(&mut y0, &mut y);
+        if x0 > x1 {
+            std::mem::swap(&mut x0, &mut x1);
+            std::mem::swap(&mut y0, &mut y1);
         }
 
-        // Step 2: Separate y-direction from y-step using normalised coordinates and deltas
-        let dx = x - x0;
-        let dy = (y - y0).abs();
-        let y_step = if (y - y0) >= 0 { 1 } else { -1 };
+        // separate step direction from change in y
+        let dx = x1 - x0;
+        let dy = (y1 - y0).abs();
+        let y_step = if (y1 - y0) >= 0 { 1 } else { -1 };
 
-        // Now we write the Bresenham implicit line function
         #[allow(non_snake_case)]
         let mut D = 2 * dy - dx;
-        let mut points: Vec<(i32, i32)> = Vec::with_capacity((x.max(x0) - x.min(x0) + 1) as usize);
+        let mut y = y0;
 
-        y = y0;
-        for x in x0..x {
-            if steep {
-                points.push((y, x));
-            } else {
-                points.push((x, y));
+        for x in x0..x1 {
+            let point = if steep { (y, x) } else { (x, y) };
+            if !visit(point) {
+                break;
             }
 
             if D >= 0 {
-                // North East
                 y += y_step;
                 D += 2 * (dy - dx);
             } else {
-                // East
                 D += 2 * dy;
             }
         }
+    }
 
+    // draw line using Bresenham's line drawing algorithm returning visited points
+    pub fn plot_line(start: &(i32, i32), end: &(i32, i32)) -> Vec<(i32, i32)> {
+        let mut points = Vec::new();
+        // Bresenham generates the pixels we want to visit; add them to the result vec
+        Renderer::visit_line_points(*start, *end, |point| {
+            points.push(point);
+            true
+        });
         points
     }
 
-    // pub fn draw_line_aa() {}
+    pub fn draw_line(&mut self, start: (i32, i32), end: (i32, i32), color: &Color) {
+        // Note: the visitor lets us draw without allocating the intermediate Vec
+        Renderer::visit_line_points(start, end, |point| {
+            self.set_pixel(point, color);
+            true
+        });
+    }
 }
 
 #[cfg(test)]
