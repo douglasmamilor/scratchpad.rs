@@ -6,9 +6,9 @@ impl<'a> Renderer<'a> {
         let (mut x0, mut y0) = (start.0, start.1);
         let (mut x, mut y) = (end.0, end.1);
 
-        // Begin normalising the line for Bresenham's algorithm
+        // Step 1: Normalise
 
-        // Step 1: Determine if the line is steep (> 45 degrees)
+        // Determine if the line is steep (> 45 degrees)
         // and if steep, swap x and y coordinates
         let steep = (y - y0).abs() > (x - x0).abs();
         if steep {
@@ -16,13 +16,13 @@ impl<'a> Renderer<'a> {
             std::mem::swap(&mut x, &mut y);
         }
 
-        // Step 2: If moving right to left, swap start and end points
+        // If moving right to left, swap start and end points
         if x0 > x {
             std::mem::swap(&mut x0, &mut x);
             std::mem::swap(&mut y0, &mut y);
         }
 
-        // Step 3: Separate y-direction from y-step using normalised coordinates and deltas
+        // Step 2: Separate y-direction from y-step using normalised coordinates and deltas
         let dx = x - x0;
         let dy = (y - y0).abs();
         let y_step = if (y - y0) >= 0 { 1 } else { -1 };
