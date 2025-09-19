@@ -1,3 +1,5 @@
+mod lines;
+
 use crate::color::Color;
 use crate::framebuffer::FrameBuffer;
 

@@ -134,6 +134,8 @@ impl Color {
     pub fn lerp(&self, to: &Color, tval: f32) -> Color {
         let t = tval.clamp(0.0, 1.0);
 
+        // This uses linear interpolation (lerp) formula for each channel
+        // the formula is: start + t * (end - start)
         let a = (self.a as f32 + t * (to.a as f32 - self.a as f32)).round() as u8;
         let r = (self.r as f32 + t * (to.r as f32 - self.r as f32)).round() as u8;
         let g = (self.g as f32 + t * (to.g as f32 - self.g as f32)).round() as u8;
