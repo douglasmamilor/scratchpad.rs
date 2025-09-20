@@ -1,5 +1,6 @@
 mod lines;
 mod lines_aa;
+mod rectangles;
 
 use crate::color::Color;
 use crate::framebuffer::FrameBuffer;
