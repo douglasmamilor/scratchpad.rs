@@ -67,10 +67,10 @@ mod tests {
         let mut points = collect_rect((1, 1), (4, 3));
         points.sort();
         let expected = vec![
-            (1, 1), (2, 1), (3, 1), (4, 1),        // top edge
-            (1, 2), (1, 3),                         // left edge (excluding corners)
-            (2, 3), (3, 3), (4, 3),                 // bottom edge (excluding corners)
-            (4, 2),                                 // right edge (excluding corners)
+            (1, 1), (2, 1), (3, 1), (4, 1),        // top edge (inclusive corners)
+            (1, 2),                                 // left edge (without corners)
+            (2, 3), (3, 3), (4, 3), (1, 3),         // bottom edge (inclusive corners)
+            (4, 2),                                 // right edge (without corners)
         ];
         let mut expected_sorted = expected.clone();
         expected_sorted.sort();
