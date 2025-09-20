@@ -50,6 +50,8 @@ impl FrameBuffer {
     /// Set a pixel at the given coordinates
     #[inline]
     pub fn set_pixel(&mut self, x: usize, y: usize, color: u32) {
+        // TODO: For now all clipping is done here. When we get to the clipping module we need to
+        // clip at higher level to unnecessary allocations.
         if x < self.width && y < self.height {
             self.pixels[y * self.width + x] = color;
         }

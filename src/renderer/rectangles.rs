@@ -36,24 +36,39 @@ impl<'a> Renderer<'a> {
         self.draw_line((x0, y0), (x, y0), color); // top line
         self.draw_line((x0, y), (x, y), color); // bottom line
 
-        if h > 2 {
-            self.draw_line((x0, y0 + 1), (x0, y - 1), color); // left line without corners
-            self.draw_line((x, y0 + 1), (x, y - 1), color); // right line without corners
-        }
+        self.draw_line((x0, y0 + 1), (x0, y - 1), color); // left line without corners
+        self.draw_line((x, y0 + 1), (x, y - 1), color); // right line without corners
     }
 
-    // pub fn fill_rect(&mut self, top_left: (i32, i32), size: (usize, usize)) {}
+    pub fn fill_rect(&mut self, top_left: (i32, i32), size: (usize, usize), color: &Color) {
+        let (w, h) = (size.0 as i32, size.1 as i32);
+        let (x0, y0) = top_left;
+        let (x, y) = (x0 + w - 1, y0 + h - 1);
+
+        if w <= 0 || h <= 0 {
+            return;
+        }
+
+        for yi in y0..=y {
+            for xi in x0..=x {
+                self.set_pixel((xi, yi), color);
+            }
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn collect_rect(top_left: (i32, i32), size: (usize, usize)) -> Vec<(i32, i32)> {
+    fn collect_rect<F>(top_left: (i32, i32), size: (usize, usize), draw_fn: F) -> Vec<(i32, i32)>
+    where
+        F: FnOnce(&mut Renderer, (i32, i32), (usize, usize), &Color),
+    {
         let mut fb = crate::framebuffer::FrameBuffer::new(16, 16);
         {
             let mut renderer = Renderer::new(&mut fb);
-            renderer.draw_rect(top_left, size, &Color::WHITE);
+            draw_fn(&mut renderer, top_left, size, &Color::WHITE);
         }
 
         let mut points = Vec::new();
@@ -86,6 +101,39 @@ mod tests {
     }
 
     #[test]
+    fn fill_rect() {
+        let top_left = (2, 2);
+        let size = (3, 3);
+
+        let points = collect_rect(top_left, size, |renderer, top_left, size, color| {
+            renderer.fill_rect(top_left, size, color)
+        });
+
+        assert_eq!(
+            points,
+            vec![
+                (2, 2),
+                (3, 2),
+                (4, 2),
+                (2, 3),
+                (3, 3),
+                (4, 3),
+                (2, 4),
+                (3, 4),
+                (4, 4),
+            ]
+        );
+    }
+
+    #[test]
+    fn draws_minimum_rectangle() {
+        let points = collect_rect((2, 2), (1, 1), |renderer, tl, sz, color| {
+            renderer.draw_rect(tl, sz, color)
+        });
+        assert_eq!(points, vec![(2, 2)]);
+    }
+
+    #[test]
     fn draw_rect_with_pts() {
         let top_left = (2, 2);
         let bottom_right = (4, 4);
@@ -107,14 +155,10 @@ mod tests {
     }
 
     #[test]
-    fn draws_minimum_rectangle() {
-        let points = collect_rect((2, 2), (1, 1));
-        assert_eq!(points, vec![(2, 2)]);
-    }
-
-    #[test]
     fn draws_axis_aligned_rectangle() {
-        let mut points = collect_rect((1, 1), (4, 3));
+        let mut points = collect_rect((1, 1), (4, 3), |renderer, tl, sz, color| {
+            renderer.draw_rect(tl, sz, color)
+        });
         points.sort();
         let expected = vec![
             (1, 1),
