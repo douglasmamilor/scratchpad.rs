@@ -11,11 +11,12 @@ fn roundi(x: f32) -> i32 {
 }
 #[inline]
 fn fpart(x: f32) -> f32 {
-    x.fract()
+    x - x.floor()
 }
 #[inline]
 fn rfpart(x: f32) -> f32 {
-    1.0 - fpart(x)
+    let frac = fpart(x);
+    if frac == 0.0 { 1.0 } else { 1.0 - frac }
 }
 
 impl<'a> Renderer<'a> {
@@ -134,5 +135,106 @@ impl<'a> Renderer<'a> {
             self.set_pixel((x, y), &scaled);
             true
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_points(actual: &[(i32, i32, f32)], expected: &[(i32, i32, f32)]) {
+        assert_eq!(actual.len(), expected.len());
+        for (a, e) in actual.iter().zip(expected.iter()) {
+            assert_eq!(a.0, e.0);
+            assert_eq!(a.1, e.1);
+            assert!((a.2 - e.2).abs() < 1e-6, "coverage mismatch: {} != {}", a.2, e.2);
+        }
+    }
+
+    #[test]
+    fn test_horizontal_line_aa() {
+        let points = Renderer::plot_line_aa(&(0.0, 0.0), &(5.0, 0.0));
+        let expected = vec![
+            (0, 0, 0.5),
+            (0, 1, 0.0),
+            (1, 0, 1.0),
+            (1, 1, 0.0),
+            (2, 0, 1.0),
+            (2, 1, 0.0),
+            (3, 0, 1.0),
+            (3, 1, 0.0),
+            (4, 0, 1.0),
+            (4, 1, 0.0),
+            (5, 0, 0.5),
+            (5, 1, 0.0),
+        ];
+        assert_points(&points, &expected);
+    }
+
+    #[test]
+    fn test_vertical_line_aa() {
+        let points = Renderer::plot_line_aa(&(0.0, 0.0), &(0.0, 5.0));
+        let expected = vec![
+            (0, 0, 0.5),
+            (1, 0, 0.0),
+            (0, 1, 1.0),
+            (1, 1, 0.0),
+            (0, 2, 1.0),
+            (1, 2, 0.0),
+            (0, 3, 1.0),
+            (1, 3, 0.0),
+            (0, 4, 1.0),
+            (1, 4, 0.0),
+            (0, 5, 0.5),
+            (1, 5, 0.0),
+        ];
+        assert_points(&points, &expected);
+    }
+
+    #[test]
+    fn test_diagonal_line_aa() {
+        let points = Renderer::plot_line_aa(&(0.0, 0.0), &(3.0, 3.0));
+        let expected = vec![
+            (0, 0, 0.5),
+            (0, 1, 0.0),
+            (1, 1, 1.0),
+            (1, 2, 0.0),
+            (2, 2, 1.0),
+            (2, 3, 0.0),
+            (3, 3, 0.5),
+            (3, 4, 0.0),
+        ];
+        assert_points(&points, &expected);
+    }
+
+    #[test]
+    fn test_reverse_direction_aa() {
+        let forward = Renderer::plot_line_aa(&(0.0, 0.0), &(4.0, 2.0));
+        let reverse = Renderer::plot_line_aa(&(4.0, 2.0), &(0.0, 0.0));
+        assert_points(&forward, &reverse);
+    }
+
+    #[test]
+    fn test_single_point_aa() {
+        let points = Renderer::plot_line_aa(&(2.0, 3.0), &(2.0, 3.0));
+        assert_eq!(points, vec![(2, 3, 1.0)]);
+    }
+
+    #[test]
+    fn test_negative_coordinates_aa() {
+        let points = Renderer::plot_line_aa(&(-2.0, -1.0), &(2.0, 1.0));
+        let expected = vec![
+            (-2, -1, 0.5),
+            (-2, 0, 0.0),
+            (-1, -1, 0.5),
+            (-1, 0, 0.5),
+            (0, 0, 1.0),
+            (0, 1, 0.0),
+            (1, 0, 0.5),
+            (1, 1, 0.5),
+            (2, 1, 0.5),
+            (2, 2, 0.0),
+        ];
+        assert_points(&points, &expected);
     }
 }
