@@ -31,7 +31,7 @@ impl<'a> Renderer<'a> {
         let mut D = 2 * dy - dx;
         let mut y = y0;
 
-        for x in x0..x1 {
+        for x in x0..=x1 {
             let point = if steep { (y, x) } else { (x, y) };
             if !visit(point) {
                 break;
@@ -76,7 +76,7 @@ mod tests {
         let end = (5, 0);
         let points = Renderer::plot_line(&start, &end);
 
-        let expected = vec![(0, 0), (1, 0), (2, 0), (3, 0), (4, 0)];
+        let expected = vec![(0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (5, 0)];
         assert_eq!(points, expected);
     }
 
@@ -86,7 +86,7 @@ mod tests {
         let end = (0, 5);
         let points = Renderer::plot_line(&start, &end);
 
-        let expected = vec![(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)];
+        let expected = vec![(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (0, 5)];
         assert_eq!(points, expected);
     }
 
@@ -96,7 +96,7 @@ mod tests {
         let end = (3, 3);
         let points = Renderer::plot_line(&start, &end);
 
-        let expected = vec![(0, 0), (1, 1), (2, 2)];
+        let expected = vec![(0, 0), (1, 1), (2, 2), (3, 3)];
         assert_eq!(points, expected);
     }
 
@@ -106,7 +106,7 @@ mod tests {
         let end = (0, 0);
         let points = Renderer::plot_line(&start, &end);
 
-        let expected = vec![(0, 0), (1, 0), (2, 0), (3, 0), (4, 0)];
+        let expected = vec![(0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (5, 0)];
         assert_eq!(points, expected);
     }
 
@@ -117,7 +117,7 @@ mod tests {
         let points = Renderer::plot_line(&start, &end);
 
         // For steep lines, coordinates are swapped
-        let expected = vec![(0, 0), (0, 1), (1, 2), (1, 3), (2, 4)];
+        let expected = vec![(0, 0), (0, 1), (1, 2), (1, 3), (2, 4), (2, 5)];
         assert_eq!(points, expected);
     }
 
@@ -127,7 +127,7 @@ mod tests {
         let end = (5, 5);
         let points = Renderer::plot_line(&start, &end);
 
-        assert_eq!(points, vec![]);
+        assert_eq!(points, vec![(5, 5)]);
     }
 
     #[test]
@@ -136,7 +136,7 @@ mod tests {
         let end = (2, 2);
         let points = Renderer::plot_line(&start, &end);
 
-        let expected = vec![(-2, -2), (-1, -1), (0, 0), (1, 1)];
+        let expected = vec![(-2, -2), (-1, -1), (0, 0), (1, 1), (2, 2)];
         assert_eq!(points, expected);
     }
 }
