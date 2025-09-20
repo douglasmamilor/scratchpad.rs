@@ -6,7 +6,7 @@ fn ipart(x: f32) -> i32 {
     x.floor() as i32
 }
 #[inline]
-fn roundi(x: f32) -> i32 {
+pub fn roundi(x: f32) -> i32 {
     (x + 0.5).floor() as i32
 }
 #[inline]
@@ -147,7 +147,12 @@ mod tests {
         for (a, e) in actual.iter().zip(expected.iter()) {
             assert_eq!(a.0, e.0);
             assert_eq!(a.1, e.1);
-            assert!((a.2 - e.2).abs() < 1e-6, "coverage mismatch: {} != {}", a.2, e.2);
+            assert!(
+                (a.2 - e.2).abs() < 1e-6,
+                "coverage mismatch: {} != {}",
+                a.2,
+                e.2
+            );
         }
     }
 

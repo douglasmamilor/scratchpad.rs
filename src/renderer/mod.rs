@@ -1,3 +1,4 @@
+mod circles;
 mod lines;
 mod lines_aa;
 mod rectangles;
