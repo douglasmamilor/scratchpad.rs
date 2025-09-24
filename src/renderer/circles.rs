@@ -1,26 +1,50 @@
 use crate::color::Color;
 use crate::renderer::Renderer;
-use crate::renderer::lines_aa::roundi;
 
 impl<'a> Renderer<'a> {
-    pub fn draw_circle(&mut self, ctr: (f32, f32), r: f32) {
-        // TODO: should we allow floats? What would that look like? What would it involve?
-        let ri = roundi(r);
-        let d = ri * 2;
-        let (cx, cy) = (roundi(ctr.0), roundi(ctr.1));
-        let (x0, y0) = (cx - ri, cy - ri);
-        let (x, _y) = (x0 + d - 1, y0 + d - 1);
+    /// Draws the outline of a circle using the midpoint algorithm.
+    ///
+    /// `ctr` (the centre) is specified in screen space (integer pixels). `r` the radius must be non-negative.
+    pub fn draw_circle(&mut self, ctr: (i32, i32), r: i32, color: &Color) {
+        if r < 0 {
+            return;
+        }
 
-        let mut yi;
-        let mut myi; // mirror of yi
-        for xi in x0..=x {
-            yi =
-                ctr.1 as i32 + roundi((r * r - ((xi as f32 - ctr.0) * (xi as f32 - ctr.0))).sqrt());
-            myi = 2 * cy - yi;
-            // myi = cy - (yi - cy); // Same thing
+        let (cx, cy) = ctr;
+        if r == 0 {
+            self.set_pixel((cx, cy), color);
+            return;
+        }
 
-            self.set_pixel((xi, yi), &Color::WHITE);
-            self.set_pixel((xi, myi), &Color::WHITE);
+        let mut x = r;
+        let mut y = 0;
+        #[allow(non_snake_case)]
+        let mut D = 1 - r;
+
+        let mut plot = |cx: i32, cy: i32, x: i32, y: i32| {
+            self.set_pixel((cx + x, cy + y), color); // 1st octant (+x direction)
+            self.set_pixel((cx - x, cy + y), color); // reflect across y-axis
+            self.set_pixel((cx + x, cy - y), color); // reflect across x-axis
+            self.set_pixel((cx - x, cy - y), color); // reflect across both axes
+
+            self.set_pixel((cx + y, cy + x), color); // reflect across line y=x
+            self.set_pixel((cx - y, cy + x), color); // reflect across line y=x then across y-axis
+            self.set_pixel((cx + y, cy - x), color); // reflect across y=x, then across x-axis
+            self.set_pixel((cx - y, cy - x), color); // reflect across line y=-x
+        };
+
+        while x >= y {
+            plot(cx, cy, x, y);
+
+            y += 1;
+            if D < 0 {
+                // Go North
+                D += 2 * y + 1;
+            } else {
+                // Go North-West
+                x -= 1;
+                D += 2 * (y - x) + 1;
+            }
         }
     }
 }
@@ -31,18 +55,18 @@ mod tests {
     use crate::framebuffer::FrameBuffer;
     use std::collections::HashSet;
 
-    fn collect_circle_points(center: (f32, f32), radius: f32) -> Vec<(i32, i32)> {
-        let mut fb = FrameBuffer::new(64, 64);
+    fn collect_circle(center: (i32, i32), radius: i32) -> HashSet<(i32, i32)> {
+        let mut fb = FrameBuffer::new(96, 96);
         {
             let mut renderer = Renderer::new(&mut fb);
-            renderer.draw_circle(center, radius);
+            renderer.draw_circle(center, radius, &Color::WHITE);
         }
 
-        let mut points = Vec::new();
+        let mut points = HashSet::new();
         for y in 0..fb.height() as i32 {
             for x in 0..fb.width() as i32 {
                 if fb.get_pixel(x as usize, y as usize).unwrap_or(0) != 0 {
-                    points.push((x, y));
+                    points.insert((x, y));
                 }
             }
         }
@@ -50,35 +74,59 @@ mod tests {
     }
 
     #[test]
-    fn circle_has_vertical_symmetry() {
-        let center = (20.3_f32, 18.7_f32);
-        let radius = 6.0_f32;
-        let points = collect_circle_points(center, radius);
+    fn circle_draws_symmetrically() {
+        let center = (32, 24);
+        let radius = 10;
+        let samples = collect_circle(center, radius);
 
-        assert!(!points.is_empty(), "circle should plot at least one pixel");
+        assert!(samples.contains(&(center.0 + radius, center.1)));
+        assert!(samples.contains(&(center.0 - radius, center.1)));
+        assert!(samples.contains(&(center.0, center.1 + radius)));
+        assert!(samples.contains(&(center.0, center.1 - radius)));
 
-        let cy = roundi(center.1);
-        let point_set: HashSet<_> = points.iter().copied().collect();
+        for &(x, y) in &samples {
+            let dx = x - center.0;
+            let dy = y - center.1;
+            let mirrored = [
+                (center.0 + dx, center.1 - dy),
+                (center.0 - dx, center.1 + dy),
+                (center.0 - dx, center.1 - dy),
+                (center.0 + dy, center.1 + dx),
+                (center.0 - dy, center.1 + dx),
+                (center.0 + dy, center.1 - dx),
+                (center.0 - dy, center.1 - dx),
+            ];
 
-        for &(x, y) in &points {
-            let mirror = (x, 2 * cy - y);
-            assert!(point_set.contains(&mirror), "missing mirror of ({x},{y}) -> {mirror:?}");
+            assert!(
+                mirrored.iter().any(|m| samples.contains(m)),
+                "missing symmetry for ({x},{y})"
+            );
         }
     }
 
     #[test]
-    fn circle_points_stay_within_bounding_box() {
-        let center = (12.0_f32, 10.0_f32);
-        let radius = 5.0_f32;
-        let points = collect_circle_points(center, radius);
+    fn circle_respects_bounds() {
+        let center = (30, 28);
+        let radius = 12;
+        let samples = collect_circle(center, radius);
 
-        let cx = roundi(center.0);
-        let cy = roundi(center.1);
-        let ri = roundi(radius);
-
-        for &(x, y) in &points {
-            assert!(x >= cx - ri && x <= cx + ri, "x out of bounds: {x}");
-            assert!(y >= cy - ri && y <= cy + ri, "y out of bounds: {y}");
+        for &(x, y) in &samples {
+            let dx = x - center.0;
+            let dy = y - center.1;
+            assert!(
+                dx.abs() <= radius && dy.abs() <= radius,
+                "point outside bounding square"
+            );
         }
+    }
+
+    #[test]
+    fn circle_with_zero_radius_draws_single_pixel() {
+        let center = (10, 15);
+        let radius = 0;
+        let samples = collect_circle(center, radius);
+
+        assert_eq!(samples.len(), 1);
+        assert!(samples.contains(&center));
     }
 }
