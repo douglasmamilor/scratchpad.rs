@@ -52,6 +52,8 @@ impl FrameBuffer {
     pub fn set_pixel(&mut self, x: usize, y: usize, color: u32) {
         // TODO: For now all clipping is done here. When we get to the clipping module we need to
         // clip at higher level to unnecessary allocations.
+        // Also at a minimum clipping should be done in the renderer in order to keep this struct
+        // dumb
         if x < self.width && y < self.height {
             self.pixels[y * self.width + x] = color;
         }
