@@ -60,15 +60,6 @@ impl<'a> Renderer<'a> {
             return;
         }
 
-        // Simple helper: inclusive horizontal span [x0, x1] on row y
-        let mut hspan = |y: i32, x0: i32, x1: i32| {
-            let (mut a, b) = if x0 <= x1 { (x0, x1) } else { (x1, x0) };
-            while a <= b {
-                self.set_pixel((a, y), color);
-                a += 1;
-            }
-        };
-
         let mut x = r;
         let mut y = 0;
         #[allow(non_snake_case)]
@@ -76,10 +67,10 @@ impl<'a> Renderer<'a> {
 
         while x >= y {
             // 4 symmetric spans (covering all 8 octants)
-            hspan(cy + y, cx - x, cx + x);
-            hspan(cy - y, cx - x, cx + x);
-            hspan(cy + x, cx - y, cx + y);
-            hspan(cy - x, cx - y, cx + y);
+            self.hspan(cy + y, cx - x, cx + x, color);
+            self.hspan(cy - y, cx - x, cx + x, color);
+            self.hspan(cy + x, cx - y, cx + y, color);
+            self.hspan(cy - x, cx - y, cx + y, color);
 
             // Midpoint step: N vs NW (your existing logic)
             y += 1;
