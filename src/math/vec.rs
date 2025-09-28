@@ -23,7 +23,7 @@ impl Vec2 {
         self.len_sq().sqrt()
     }
 
-    pub fn normalize(self) -> Self {
+    pub fn normalize_or_zero(self) -> Self {
         let len = self.len();
         if len > 0.0 {
             self / len
@@ -164,5 +164,31 @@ impl IndexMut<usize> for Vec2 {
             1 => &mut self.y,
             _ => panic!("Vec2 index out of range: {}", i),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn ops() {
+        let a = Vec2::new(1.0, 2.0);
+        let b = Vec2::new(3.0, 4.0);
+        assert_eq!(a + b, Vec2::new(4.0, 6.0));
+        assert_eq!(-a, Vec2::new(-1.0, -2.0));
+        assert_eq!(a * 2.0, Vec2::new(2.0, 4.0));
+        assert_eq!(2.0 * a, Vec2::new(2.0, 4.0));
+        assert_eq!(a / 2.0, Vec2::new(0.5, 1.0));
+        let mut c = a;
+        c[1] += 10.0;
+        assert_eq!(c, Vec2::new(1.0, 12.0));
+    }
+
+    #[test]
+    fn math() {
+        let v = Vec2::new(3.0, 4.0);
+        assert_eq!(v.len(), 5.0);
+        assert_eq!(v.normalize_or_zero().len(), 1.0);
+        assert_eq!(v.dot(Vec2::new(1.0, 1.0)), 7.0);
     }
 }
