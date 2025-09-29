@@ -117,6 +117,16 @@ impl Vec2 {
         }
     }
 
+    /// Reflects this vector across a normal vector
+    ///
+    /// Computes the reflection of this vector across the line defined by the normal.
+    /// The normal should be normalized for correct results.
+    /// Formula: reflected = self - 2 * (self · normal) * normal
+    #[inline]
+    pub fn reflect(self, normal: Self) -> Self {
+        self - 2.0 * self.dot(normal) * normal
+    }
+
     /// Returns the angle in radians from the positive X-axis
     ///
     /// Range: [-π, π] (atan2 convention)
@@ -384,6 +394,27 @@ mod tests {
     }
 
     #[test]
+    fn reflection() {
+        let incident = Vec2::new(1.0, -1.0);
+        let normal = Vec2::new(0.0, 1.0);
+        let reflected = incident.reflect(normal);
+
+        // Should reflect across the Y=0 line
+        assert_eq!(reflected, Vec2::new(1.0, 1.0));
+
+        // Test reflection of a vector along the normal
+        let along_normal = Vec2::new(0.0, 1.0);
+        let reflected_along = along_normal.reflect(normal);
+        assert_eq!(reflected_along, Vec2::new(0.0, -1.0));
+
+        // Test reflection across X-axis
+        let incident_x = Vec2::new(-1.0, 1.0);
+        let normal_x = Vec2::new(1.0, 0.0);
+        let reflected_x = incident_x.reflect(normal_x);
+        assert_eq!(reflected_x, Vec2::new(1.0, 1.0));
+    }
+
+    #[test]
     fn constants() {
         assert_eq!(Vec2::ZERO, Vec2::new(0.0, 0.0));
         assert_eq!(Vec2::ONE, Vec2::new(1.0, 1.0));
@@ -548,16 +579,16 @@ mod tests {
         let tiny = Vec2::new(1e-10, 1e-10);
         assert!(tiny.len() > 0.0);
         assert!((tiny.normalize_or_zero().len() - 1.0).abs() < 1e-6);
-        
+
         // Test with very large numbers
         let huge = Vec2::new(1e10, 1e10);
         assert!(huge.len() > 0.0);
         assert!((huge.normalize_or_zero().len() - 1.0).abs() < 1e-6);
-        
+
         // Test infinity and NaN handling
         let inf = Vec2::new(f32::INFINITY, 0.0);
         assert_eq!(inf.len(), f32::INFINITY);
-        
+
         // Test negative zero
         let neg_zero = Vec2::new(-0.0, -0.0);
         assert_eq!(neg_zero.len(), 0.0);
