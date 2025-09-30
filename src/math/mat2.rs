@@ -57,6 +57,61 @@ impl Mat2 {
             m11: col1.y,
         }
     }
+
+    /// Calculate the determinant of the matrix
+    #[inline]
+    pub fn det(self) -> f32 {
+        (self.m00 * self.m11) - (self.m01 * self.m10)
+    }
+
+    /// Transpose the matrix
+    #[inline]
+    pub fn transpose(self) -> Self {
+        Self {
+            m00: self.m00,
+            m01: self.m10,
+            m10: self.m01,
+            m11: self.m11,
+        }
+    }
+
+    /// Invert the matrix
+    #[inline]
+    pub fn inverse(self) -> Self {
+        let det = self.det();
+        debug_assert!(det != 0.0, "Matrix is not invertible");
+
+        let inv_det = 1.0 / det;
+
+        Self {
+            m00: self.m11 * inv_det,
+            m01: -self.m01 * inv_det,
+            m10: -self.m10 * inv_det,
+            m11: self.m00 * inv_det,
+        }
+    }
+
+    /// Rotation matrix for a given angle in radians
+    #[inline]
+    pub fn rotate(angle: f64) -> Self {
+        Self {
+            m00: angle.cos() as f32,
+            m01: -angle.sin() as f32,
+            m10: angle.sin() as f32,
+            m11: angle.cos() as f32,
+        }
+    }
+
+    /// Scale matrix with given x and y scale factors
+    #[inline]
+    pub fn scale(sx: f32, sy: f32) -> Self {
+        Self {
+            m00: sx,
+            m01: 0.0,
+            m10: 0.0,
+            m11: sy,
+        }
+    }
 }
 
 /******************* Unary ******************/
@@ -203,5 +258,37 @@ impl DivAssign<f32> for Mat2 {
         self.m01 *= inv;
         self.m10 *= inv;
         self.m11 *= inv;
+    }
+}
+
+impl Mul<Mat2> for Mat2 {
+    type Output = Self;
+
+    /// Matrix multiplication operator (m1 * m2)
+    ///
+    /// Performs matrix multiplication between two 2x2 matrices.
+    fn mul(self, rhs: Mat2) -> Self::Output {
+        Self {
+            m00: self.m00 * rhs.m00 + self.m01 * rhs.m10,
+            m01: self.m00 * rhs.m01 + self.m01 * rhs.m11,
+            m10: self.m10 * rhs.m00 + self.m11 * rhs.m10,
+            m11: self.m10 * rhs.m01 + self.m11 * rhs.m11,
+        }
+    }
+}
+
+impl Mul<Vec2> for Mat2 {
+    type Output = Vec2;
+
+    /// Matrix-vector multiplication operator (m * v)
+    /// This convention is column-major,
+    /// meaning the vector is treated as a column vector.
+    ///
+    /// Transforms a 2D vector by the matrix.
+    fn mul(self, rhs: Vec2) -> Self::Output {
+        Vec2 {
+            x: self.m00 * rhs.x + self.m01 * rhs.y,
+            y: self.m10 * rhs.x + self.m11 * rhs.y,
+        }
     }
 }
