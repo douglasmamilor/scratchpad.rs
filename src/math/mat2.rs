@@ -64,7 +64,13 @@ impl Mat2 {
         (self.m00 * self.m11) - (self.m01 * self.m10)
     }
 
-    /// Transpose the matrix
+    /// Return the trace of this matrix (sum of diagonal elements)
+    #[inline]
+    pub fn trace(self) -> f32 {
+        self.m00 + self.m11
+    }
+
+    /// Return a transposed version of the matrix
     #[inline]
     pub fn transpose(self) -> Self {
         Self {
@@ -75,7 +81,7 @@ impl Mat2 {
         }
     }
 
-    /// Invert the matrix
+    /// Return the inverse of the matrix
     #[inline]
     pub fn inverse(self) -> Self {
         let det = self.det();
@@ -91,7 +97,7 @@ impl Mat2 {
         }
     }
 
-    /// Rotation matrix for a given angle in radians
+    /// Return a rotation matrix for a given angle in radians
     #[inline]
     pub fn rotate(angle: f64) -> Self {
         Self {
@@ -102,7 +108,7 @@ impl Mat2 {
         }
     }
 
-    /// Scale matrix with given x and y scale factors
+    /// Return a scaling matrix with given x and y scale factors
     #[inline]
     pub fn scale(sx: f32, sy: f32) -> Self {
         Self {
@@ -111,6 +117,75 @@ impl Mat2 {
             m10: 0.0,
             m11: sy,
         }
+    }
+
+    /// Return a scaling matrix scaled uniformly by s
+    #[inline]
+    pub fn scale_uniform(s: f32) -> Self {
+        Self {
+            m00: s,
+            m01: 0.0,
+            m10: 0.0,
+            m11: s,
+        }
+    }
+
+    /// Return a shear matrix with given x and y shear factors
+    #[inline]
+    pub fn shear(sx: f32, sy: f32) -> Self {
+        Self {
+            m00: 1.0,
+            m01: sx,
+            m10: sy,
+            m11: 1.0,
+        }
+    }
+
+    /// From angle in radians, create a rotation matrix
+    pub fn from_angle(angle: f64) -> Self {
+        Self::rotate(angle)
+    }
+
+    /// Returns true if this is the identity matrix
+    #[inline]
+    pub fn is_identity(&self) -> bool {
+        self.m00 == 1.0 && self.m01 == 0.0 && self.m10 == 0.0 && self.m11 == 1.0
+    }
+
+    /// Returns `true` if this matrix is approximately the identity matrix,
+    /// within the given epsilon tolerance.
+    ///
+    /// Useful for floating-point results where rounding errors are possible.
+    ///
+    /// # Arguments
+    /// * `eps` - maximum allowed difference from the ideal values.
+    #[inline]
+    pub fn is_identity_eps(&self, eps: f32) -> bool {
+        (self.m00 - 1.0).abs() <= eps
+            && self.m01.abs() <= eps
+            && self.m10.abs() <= eps
+            && (self.m11 - 1.0).abs() <= eps
+    }
+
+    /// Returns true if this is the zero matrix
+    #[inline]
+    pub fn is_zero(&self) -> bool {
+        self.m00 == 0.0 && self.m01 == 0.0 && self.m10 == 0.0 && self.m11 == 0.0
+    }
+
+    /// Returns `true` if this matrix is approximately the zero matrix,
+    /// within the given epsilon tolerance.
+    ///
+    /// Useful for floating-point results where rounding errors are possible.
+    ///
+    /// # Arguments
+    /// * `eps` - maximum allowed difference from zero.
+    #[inline]
+    pub fn is_zero_eps(&self, eps: f32) -> bool {
+        self.m00.abs() <= eps
+            && self.m01.abs() <= eps
+            && self.m10.abs() <= eps
+            && self.m11.abs() <= eps
     }
 }
 
@@ -289,6 +364,104 @@ impl Mul<Vec2> for Mat2 {
         Vec2 {
             x: self.m00 * rhs.x + self.m01 * rhs.y,
             y: self.m10 * rhs.x + self.m11 * rhs.y,
+        }
+    }
+}
+
+/******************* Mul/Div ******************/
+
+impl Index<usize> for Mat2 {
+    type Output = f32;
+
+    /// Index into the matrix as a flat array in **row-major order**.
+    ///
+    /// Valid indices:
+    /// * `0` → `m00`
+    /// * `1` → `m01`
+    /// * `2` → `m10`
+    /// * `3` → `m11`
+    ///
+    /// # Panics
+    /// Panics if the index is not in `0..4`.
+    #[inline]
+    fn index(&self, i: usize) -> &Self::Output {
+        match i {
+            0 => &self.m00,
+            1 => &self.m01,
+            2 => &self.m10,
+            3 => &self.m11,
+            _ => panic!("Mat2 index out of range: {i}"),
+        }
+    }
+}
+
+impl IndexMut<usize> for Mat2 {
+    /// Mutable index into the matrix as a flat array in **row-major order**.
+    ///
+    /// Valid indices:
+    /// * `0` → `m00`
+    /// * `1` → `m01`
+    /// * `2` → `m10`
+    /// * `3` → `m11`
+    ///
+    /// # Panics
+    /// Panics if the index is not in `0..4`.
+    #[inline]
+    fn index_mut(&mut self, i: usize) -> &mut Self::Output {
+        match i {
+            0 => &mut self.m00,
+            1 => &mut self.m01,
+            2 => &mut self.m10,
+            3 => &mut self.m11,
+            _ => panic!("Mat2 index out of range: {i}"),
+        }
+    }
+}
+
+impl Index<(usize, usize)> for Mat2 {
+    type Output = f32;
+
+    /// Index into the matrix by `(row, col)`.
+    ///
+    /// Valid indices (row, col):
+    /// * `m(0,0)` → `m00`
+    /// * `m(0,1)` → `m01`
+    /// * `m(1,0)` → `m10`
+    /// * `m(1,1)` → `m11`
+    ///
+    /// # Panics
+    /// Panics if either row or col is not in `0..2`.
+    #[inline]
+    fn index(&self, index: (usize, usize)) -> &Self::Output {
+        match index {
+            (0, 0) => &self.m00,
+            (0, 1) => &self.m01,
+            (1, 0) => &self.m10,
+            (1, 1) => &self.m11,
+            _ => panic!("Mat2 index out of range: {:?}", index),
+        }
+    }
+}
+
+impl IndexMut<(usize, usize)> for Mat2 {
+    /// Mutable index into the matrix by `(row, col)`.
+    ///
+    /// Valid indices (row, col):
+    /// * `m(0,0)` → `m00`
+    /// * `m(0,1)` → `m01`
+    /// * `m(1,0)` → `m10`
+    /// * `m(1,1)` → `m11`
+    ///
+    /// # Panics
+    /// Panics if either row or col is not in `0..2`.
+    #[inline]
+    fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
+        match index {
+            (0, 0) => &mut self.m00,
+            (0, 1) => &mut self.m01,
+            (1, 0) => &mut self.m10,
+            (1, 1) => &mut self.m11,
+            _ => panic!("Mat2 index out of range: {:?}", index),
         }
     }
 }
