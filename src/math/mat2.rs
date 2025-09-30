@@ -187,6 +187,33 @@ impl Mat2 {
             && self.m10.abs() <= eps
             && self.m11.abs() <= eps
     }
+
+    /// Convert the matrix to a flat array in **row-major order**.
+    #[inline]
+    pub fn to_array(self) -> [f32; 4] {
+        [self.m00, self.m01, self.m10, self.m11]
+    }
+
+    /// Create a matrix from a flat array in **row-major order**.
+    #[inline]
+    pub fn from_array(arr: [f32; 4]) -> Self {
+        Self {
+            m00: arr[0],
+            m01: arr[1],
+            m10: arr[2],
+            m11: arr[3],
+        }
+    }
+
+    /// Lerp between two matrices
+    pub fn lerp(self, other: Self, t: f32) -> Self {
+        Self {
+            m00: self.m00 + (other.m00 - self.m00) * t,
+            m01: self.m01 + (other.m01 - self.m01) * t,
+            m10: self.m10 + (other.m10 - self.m10) * t,
+            m11: self.m11 + (other.m11 - self.m11) * t,
+        }
+    }
 }
 
 /******************* Unary ******************/
@@ -438,7 +465,7 @@ impl Index<(usize, usize)> for Mat2 {
             (0, 1) => &self.m01,
             (1, 0) => &self.m10,
             (1, 1) => &self.m11,
-            _ => panic!("Mat2 index out of range: {:?}", index),
+            _ => panic!("Mat2 index out of range: {index:?}"),
         }
     }
 }
@@ -461,7 +488,7 @@ impl IndexMut<(usize, usize)> for Mat2 {
             (0, 1) => &mut self.m01,
             (1, 0) => &mut self.m10,
             (1, 1) => &mut self.m11,
-            _ => panic!("Mat2 index out of range: {:?}", index),
+            _ => panic!("Mat2 index out of range: {index:?}"),
         }
     }
 }
