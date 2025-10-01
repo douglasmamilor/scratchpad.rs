@@ -70,6 +70,16 @@ impl Mat2 {
         self.m00 + self.m11
     }
 
+    /// Return the Frobenius norm of this matrix
+    ///
+    /// The Frobenius norm is the square root of the sum of squares of all elements.
+    /// It's a measure of the "size" of the matrix.
+    #[inline]
+    pub fn frobenius_norm(self) -> f32 {
+        (self.m00 * self.m00 + self.m01 * self.m01 + self.m10 * self.m10 + self.m11 * self.m11)
+            .sqrt()
+    }
+
     /// Return a transposed version of the matrix
     #[inline]
     pub fn transpose(self) -> Self {
@@ -215,6 +225,18 @@ impl Mat2 {
         }
     }
 
+    /// Checks if two matrices are approximately equal within the given epsilon
+    ///
+    /// Useful for floating-point comparisons where exact equality is unlikely.
+    /// Returns true if all components are within `eps` of each other.
+    #[inline]
+    pub fn near(self, rhs: Self, eps: f32) -> bool {
+        (self.m00 - rhs.m00).abs() <= eps
+            && (self.m01 - rhs.m01).abs() <= eps
+            && (self.m10 - rhs.m10).abs() <= eps
+            && (self.m11 - rhs.m11).abs() <= eps
+    }
+
     /// Angle of rotation in radians represented by this rotation matrix.
     /// m00 is sin(theta), m10 is cos(theta),
     /// so atan2 of (m10, m00) gives the angle.
@@ -332,6 +354,7 @@ impl SubAssign for Mat2 {
 impl Mul<f32> for Mat2 {
     type Output = Self;
 
+    #[inline]
     fn mul(self, rhs: f32) -> Self::Output {
         Self {
             m00: rhs * self.m00,
@@ -352,6 +375,18 @@ impl MulAssign<f32> for Mat2 {
         self.m01 *= rhs;
         self.m10 *= rhs;
         self.m11 *= rhs;
+    }
+}
+
+/// Scalar multiplication operator (scalar * m)
+///
+/// Allows scalar-matrix multiplication in both orders: `2.0 * m` and `m * 2.0`
+impl Mul<Mat2> for f32 {
+    type Output = Mat2;
+
+    #[inline]
+    fn mul(self, rhs: Mat2) -> Self::Output {
+        rhs * self
     }
 }
 
@@ -396,6 +431,7 @@ impl Mul<Mat2> for Mat2 {
     /// Matrix multiplication operator (m1 * m2)
     ///
     /// Performs matrix multiplication between two 2x2 matrices.
+    #[inline]
     fn mul(self, rhs: Mat2) -> Self::Output {
         Self {
             m00: self.m00 * rhs.m00 + self.m01 * rhs.m10,
@@ -414,6 +450,7 @@ impl Mul<Vec2> for Mat2 {
     /// meaning the vector is treated as a column vector.
     ///
     /// Transforms a 2D vector by the matrix.
+    #[inline]
     fn mul(self, rhs: Vec2) -> Self::Output {
         Vec2 {
             x: self.m00 * rhs.x + self.m01 * rhs.y,
@@ -517,5 +554,316 @@ impl IndexMut<(usize, usize)> for Mat2 {
             (1, 1) => &mut self.m11,
             _ => panic!("Mat2 index out of range: {index:?}"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::f32::consts::PI;
+
+    #[test]
+    fn construction() {
+        // Test basic construction
+        let m = Mat2::new(1.0, 2.0, 3.0, 4.0);
+        assert_eq!(m.m00, 1.0);
+        assert_eq!(m.m01, 2.0);
+        assert_eq!(m.m10, 3.0);
+        assert_eq!(m.m11, 4.0);
+
+        // Test constants
+        assert_eq!(Mat2::IDENTITY, Mat2::new(1.0, 0.0, 0.0, 1.0));
+        assert_eq!(Mat2::ZERO, Mat2::new(0.0, 0.0, 0.0, 0.0));
+
+        // Test from_rows
+        let row0 = Vec2::new(1.0, 2.0);
+        let row1 = Vec2::new(3.0, 4.0);
+        let m = Mat2::from_rows(row0, row1);
+        assert_eq!(m, Mat2::new(1.0, 2.0, 3.0, 4.0));
+
+        // Test from_cols
+        let col0 = Vec2::new(1.0, 3.0);
+        let col1 = Vec2::new(2.0, 4.0);
+        let m = Mat2::from_cols(col0, col1);
+        assert_eq!(m, Mat2::new(1.0, 2.0, 3.0, 4.0));
+    }
+
+    #[test]
+    fn arithmetic_operations() {
+        let a = Mat2::new(1.0, 2.0, 3.0, 4.0);
+        let b = Mat2::new(5.0, 6.0, 7.0, 8.0);
+
+        // Addition
+        assert_eq!(a + b, Mat2::new(6.0, 8.0, 10.0, 12.0));
+
+        // Subtraction
+        assert_eq!(a - b, Mat2::new(-4.0, -4.0, -4.0, -4.0));
+
+        // Scalar multiplication
+        assert_eq!(a * 2.0, Mat2::new(2.0, 4.0, 6.0, 8.0));
+        assert_eq!(2.0 * a, Mat2::new(2.0, 4.0, 6.0, 8.0));
+
+        // Scalar division
+        assert_eq!(a / 2.0, Mat2::new(0.5, 1.0, 1.5, 2.0));
+
+        // Negation
+        assert_eq!(-a, Mat2::new(-1.0, -2.0, -3.0, -4.0));
+    }
+
+    #[test]
+    fn assignment_operators() {
+        let mut m = Mat2::new(1.0, 2.0, 3.0, 4.0);
+        let other = Mat2::new(5.0, 6.0, 7.0, 8.0);
+
+        // Add assign
+        m += other;
+        assert_eq!(m, Mat2::new(6.0, 8.0, 10.0, 12.0));
+
+        // Sub assign
+        m -= other;
+        assert_eq!(m, Mat2::new(1.0, 2.0, 3.0, 4.0));
+
+        // Mul assign
+        m *= 2.0;
+        assert_eq!(m, Mat2::new(2.0, 4.0, 6.0, 8.0));
+
+        // Div assign
+        m /= 2.0;
+        assert_eq!(m, Mat2::new(1.0, 2.0, 3.0, 4.0));
+    }
+
+    #[test]
+    fn matrix_operations() {
+        let a = Mat2::new(1.0, 2.0, 3.0, 4.0);
+        let b = Mat2::new(5.0, 6.0, 7.0, 8.0);
+
+        // Matrix multiplication
+        let result = a * b;
+        // [1 2]   [5 6]   [1*5+2*7  1*6+2*8]   [19 22]
+        // [3 4] × [7 8] = [3*5+4*7  3*6+4*8] = [43 50]
+        assert_eq!(result, Mat2::new(19.0, 22.0, 43.0, 50.0));
+
+        // Determinant
+        assert_eq!(a.det(), 1.0 * 4.0 - 2.0 * 3.0); // 4 - 6 = -2
+
+        // Trace
+        assert_eq!(a.trace(), 1.0 + 4.0); // 5
+
+        // Transpose
+        let transposed = a.transpose();
+        assert_eq!(transposed, Mat2::new(1.0, 3.0, 2.0, 4.0));
+
+        // Frobenius norm
+        let norm = a.frobenius_norm();
+        let expected = (1.0_f32 * 1.0 + 2.0 * 2.0 + 3.0 * 3.0 + 4.0 * 4.0).sqrt();
+        assert!((norm - expected).abs() < 1e-6);
+    }
+
+    #[test]
+    fn inverse() {
+        // Test invertible matrix
+        let m = Mat2::new(2.0, 1.0, 1.0, 1.0);
+        let inv = m.inverse();
+
+        // Verify: m * inv = identity
+        let identity_check = m * inv;
+        assert!(identity_check.is_identity_eps(1e-6));
+
+        // Test identity matrix inverse
+        let identity_inv = Mat2::IDENTITY.inverse();
+        assert_eq!(identity_inv, Mat2::IDENTITY);
+    }
+
+    #[test]
+    fn transformations() {
+        // Test rotation
+        let rotation = Mat2::rotate(PI / 2.0); // 90 degrees
+        let v = Vec2::new(1.0, 0.0);
+        let rotated = rotation * v;
+        assert!(rotated.near(Vec2::new(0.0, 1.0), 1e-6));
+
+        // Test scaling
+        let scale = Mat2::scale(2.0, 3.0);
+        let v = Vec2::new(1.0, 1.0);
+        let scaled = scale * v;
+        assert_eq!(scaled, Vec2::new(2.0, 3.0));
+
+        // Test uniform scaling
+        let uniform_scale = Mat2::scale_uniform(2.0);
+        let v = Vec2::new(1.0, 1.0);
+        let scaled = uniform_scale * v;
+        assert_eq!(scaled, Vec2::new(2.0, 2.0));
+
+        // Test shearing
+        let shear = Mat2::shear(0.5, 0.0); // horizontal shear
+        let v = Vec2::new(1.0, 1.0);
+        let sheared = shear * v;
+        assert_eq!(sheared, Vec2::new(1.5, 1.0));
+    }
+
+    #[test]
+    fn vector_transformation() {
+        let m = Mat2::new(1.0, 2.0, 3.0, 4.0);
+        let v = Vec2::new(1.0, 2.0);
+        let result = m * v;
+
+        // [1 2]   [1]   [1*1+2*2]   [5]
+        // [3 4] × [2] = [3*1+4*2] = [11]
+        assert_eq!(result, Vec2::new(5.0, 11.0));
+    }
+
+    #[test]
+    fn indexing() {
+        let mut m = Mat2::new(1.0, 2.0, 3.0, 4.0);
+
+        // Test flat indexing
+        assert_eq!(m[0], 1.0); // m00
+        assert_eq!(m[1], 2.0); // m01
+        assert_eq!(m[2], 3.0); // m10
+        assert_eq!(m[3], 4.0); // m11
+
+        // Test (row, col) indexing
+        assert_eq!(m[(0, 0)], 1.0); // m00
+        assert_eq!(m[(0, 1)], 2.0); // m01
+        assert_eq!(m[(1, 0)], 3.0); // m10
+        assert_eq!(m[(1, 1)], 4.0); // m11
+
+        // Test mutable indexing
+        m[0] = 10.0;
+        assert_eq!(m[0], 10.0);
+
+        m[(1, 1)] = 20.0;
+        assert_eq!(m[(1, 1)], 20.0);
+    }
+
+    #[test]
+    fn utility_methods() {
+        // Test is_identity
+        assert!(Mat2::IDENTITY.is_identity());
+        assert!(!Mat2::ZERO.is_identity());
+
+        // Test is_identity_eps
+        let almost_identity = Mat2::new(1.0001, 0.0001, 0.0001, 1.0001);
+        assert!(almost_identity.is_identity_eps(0.001));
+        assert!(!almost_identity.is_identity_eps(0.00001));
+
+        // Test is_zero
+        assert!(Mat2::ZERO.is_zero());
+        assert!(!Mat2::IDENTITY.is_zero());
+
+        // Test is_zero_eps
+        let almost_zero = Mat2::new(0.0001, 0.0001, 0.0001, 0.0001);
+        assert!(almost_zero.is_zero_eps(0.001));
+        assert!(!almost_zero.is_zero_eps(0.00001));
+
+        // Test near
+        let a = Mat2::new(1.0, 2.0, 3.0, 4.0);
+        let b = Mat2::new(1.0001, 2.0001, 3.0001, 4.0001);
+        assert!(a.near(b, 0.001));
+        assert!(!a.near(b, 0.00001));
+    }
+
+    #[test]
+    fn array_conversion() {
+        let m = Mat2::new(1.0, 2.0, 3.0, 4.0);
+        let arr = m.to_array();
+        assert_eq!(arr, [1.0, 2.0, 3.0, 4.0]);
+
+        let m2 = Mat2::from_array([5.0, 6.0, 7.0, 8.0]);
+        assert_eq!(m2, Mat2::new(5.0, 6.0, 7.0, 8.0));
+
+        // Round-trip test
+        let m3 = Mat2::from_array(m.to_array());
+        assert_eq!(m, m3);
+    }
+
+    #[test]
+    fn interpolation() {
+        let a = Mat2::new(1.0, 0.0, 0.0, 1.0); // identity
+        let b = Mat2::new(2.0, 0.0, 0.0, 2.0); // scale by 2
+
+        // Test lerp
+        let lerped = a.lerp(b, 0.5);
+        assert_eq!(lerped, Mat2::new(1.5, 0.0, 0.0, 1.5));
+
+        // Test endpoints
+        assert_eq!(a.lerp(b, 0.0), a);
+        assert_eq!(a.lerp(b, 1.0), b);
+    }
+
+    #[test]
+    fn angle_extraction() {
+        // Test 0 degree rotation
+        let m0 = Mat2::rotate(0.0);
+        assert!((m0.angle() - 0.0).abs() < 1e-6);
+
+        // Test 90 degree rotation
+        let m90 = Mat2::rotate(PI / 2.0);
+        assert!((m90.angle() - PI / 2.0).abs() < 1e-6);
+
+        // Test 180 degree rotation (atan2 can return -π or π, both are equivalent)
+        let m180 = Mat2::rotate(PI);
+        let angle = m180.angle();
+        assert!((angle - PI).abs() < 1e-6 || (angle + PI).abs() < 1e-6);
+    }
+
+    #[test]
+    fn slerp() {
+        let a = Mat2::rotate(0.0);
+        let b = Mat2::rotate(PI / 2.0);
+
+        // Test endpoints
+        let result0 = a.slerp(b, 0.0);
+        assert!(result0.near(a, 1e-6));
+
+        let result1 = a.slerp(b, 1.0);
+        assert!(result1.near(b, 1e-6));
+
+        // Test midpoint
+        let result_mid = a.slerp(b, 0.5);
+        let expected = Mat2::rotate(PI / 4.0);
+        assert!(result_mid.near(expected, 1e-6));
+    }
+
+    #[test]
+    fn mathematical_properties() {
+        let a = Mat2::new(1.0, 2.0, 3.0, 4.0);
+        let b = Mat2::new(5.0, 6.0, 7.0, 8.0);
+        let c = Mat2::new(9.0, 10.0, 11.0, 12.0);
+
+        // Associativity of matrix multiplication
+        assert_eq!((a * b) * c, a * (b * c));
+
+        // Distributivity
+        assert_eq!(a * (b + c), a * b + a * c);
+        assert_eq!((a + b) * c, a * c + b * c);
+
+        // Identity multiplication
+        assert_eq!(a * Mat2::IDENTITY, a);
+        assert_eq!(Mat2::IDENTITY * a, a);
+
+        // Zero multiplication
+        assert_eq!(a * Mat2::ZERO, Mat2::ZERO);
+        assert_eq!(Mat2::ZERO * a, Mat2::ZERO);
+
+        // Scalar multiplication properties
+        let k = 2.0;
+        assert_eq!(k * (a * b), (k * a) * b);
+        assert_eq!(k * (a * b), a * (k * b));
+    }
+
+    #[test]
+    fn edge_cases() {
+        // Test very small numbers
+        let tiny = Mat2::new(1e-10, 1e-10, 1e-10, 1e-10);
+        assert!(tiny.frobenius_norm() > 0.0);
+
+        // Test very large numbers
+        let huge = Mat2::new(1e10, 1e10, 1e10, 1e10);
+        assert!(huge.frobenius_norm() > 0.0);
+
+        // Test negative zero
+        let neg_zero = Mat2::new(-0.0, -0.0, -0.0, -0.0);
+        assert!(neg_zero.is_zero());
     }
 }

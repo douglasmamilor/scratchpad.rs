@@ -168,6 +168,39 @@ impl Vec3 {
     pub fn reject_from(self, from: Self) -> Self {
         self - self.project_onto(from)
     }
+
+    /// Spherical linear interpolation between two unit vectors
+    ///
+    /// Interpolates along the shortest path on the unit sphere between two vectors.
+    /// Both vectors should be normalized for correct results.
+    ///
+    /// # Arguments
+    /// * `to` - The target vector (should be normalized)
+    /// * `t` - Interpolation parameter in [0, 1]
+    ///
+    /// # Returns
+    /// A normalized vector interpolated between self and to.
+    #[inline]
+    pub fn slerp(self, to: Self, t: f32) -> Self {
+        let dot = self.dot(to).clamp(-1.0, 1.0);
+
+        // If vectors are very close, use linear interpolation to avoid precision issues
+        if dot > 0.9995 {
+            return self.lerp(to, t).normalize_or_zero();
+        }
+
+        let theta = dot.acos();
+        let sin_theta = theta.sin();
+
+        if sin_theta.abs() < 1e-6 {
+            return self;
+        }
+
+        let a = ((1.0 - t) * theta).sin() / sin_theta;
+        let b = (t * theta).sin() / sin_theta;
+
+        self * a + to * b
+    }
 }
 
 /******************* Unary ******************/
@@ -591,6 +624,45 @@ mod tests {
         // Reject from itself should give zero
         let self_reject = v.reject_from(v);
         assert_eq!(self_reject, Vec3::ZERO);
+    }
+
+    #[test]
+    fn slerp() {
+        // Test slerp between unit vectors
+        let a = Vec3::new(1.0, 0.0, 0.0); // X-axis
+        let b = Vec3::new(0.0, 1.0, 0.0); // Y-axis
+
+        // Test endpoints
+        let result0 = a.slerp(b, 0.0);
+        assert!(result0.near(a, 1e-6));
+
+        let result1 = a.slerp(b, 1.0);
+        assert!(result1.near(b, 1e-6));
+
+        // Test midpoint (should be on the diagonal)
+        let result_mid = a.slerp(b, 0.5);
+        let expected = Vec3::new(1.0, 1.0, 0.0).normalize_or_zero();
+        assert!(result_mid.near(expected, 1e-6));
+
+        // Test that result is always normalized
+        assert!((result_mid.len() - 1.0).abs() < 1e-6);
+
+        // Test slerp between opposite vectors
+        let c = Vec3::new(1.0, 0.0, 0.0);
+        let d = Vec3::new(-1.0, 0.0, 0.0);
+        let result_opposite = c.slerp(d, 0.5);
+        // Should be perpendicular to both (any perpendicular vector)
+        assert!((result_opposite.len() - 1.0).abs() < 1e-6);
+
+        // Test slerp with same vector
+        let result_same = a.slerp(a, 0.5);
+        assert!(result_same.near(a, 1e-6));
+
+        // Test slerp with very close vectors (should use linear interpolation fallback)
+        let e = Vec3::new(1.0, 0.0, 0.0);
+        let f = Vec3::new(0.9999, 0.01, 0.0);
+        let result_close = e.slerp(f, 0.5);
+        assert!((result_close.len() - 1.0).abs() < 1e-6);
     }
 
     #[test]
