@@ -99,12 +99,12 @@ impl Mat2 {
 
     /// Return a rotation matrix for a given angle in radians
     #[inline]
-    pub fn rotate(angle: f64) -> Self {
+    pub fn rotate(angle: f32) -> Self {
         Self {
-            m00: angle.cos() as f32,
-            m01: -angle.sin() as f32,
-            m10: angle.sin() as f32,
-            m11: angle.cos() as f32,
+            m00: angle.cos(),
+            m01: -angle.sin(),
+            m10: angle.sin(),
+            m11: angle.cos(),
         }
     }
 
@@ -142,7 +142,7 @@ impl Mat2 {
     }
 
     /// From angle in radians, create a rotation matrix
-    pub fn from_angle(angle: f64) -> Self {
+    pub fn from_angle(angle: f32) -> Self {
         Self::rotate(angle)
     }
 
@@ -213,6 +213,33 @@ impl Mat2 {
             m10: self.m10 + (other.m10 - self.m10) * t,
             m11: self.m11 + (other.m11 - self.m11) * t,
         }
+    }
+
+    /// Angle of rotation in radians represented by this rotation matrix.
+    /// m00 is sin(theta), m10 is cos(theta),
+    /// so atan2 of (m10, m00) gives the angle.
+    pub fn angle(&self) -> f32 {
+        self.m10.atan2(self.m00)
+    }
+
+    /// Spherical interpolation between two 2D rotations.
+    /// `self` and `other` must be valid rotation matrices.
+    /// `t` in [0,1].
+    pub fn slerp(&self, other: Mat2, t: f32) -> Mat2 {
+        // extract angles
+        let theta1 = self.angle(); // you’d need a helper: atan2(m10, m00)
+        let theta2 = other.angle();
+
+        // shortest path interpolation
+        let mut delta = theta2 - theta1;
+        if delta > std::f32::consts::PI {
+            delta -= 2.0 * std::f32::consts::PI;
+        } else if delta < -std::f32::consts::PI {
+            delta += 2.0 * std::f32::consts::PI;
+        }
+
+        let theta = theta1 + t * delta;
+        Self::from_angle(theta)
     }
 }
 
