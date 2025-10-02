@@ -31,6 +31,16 @@ impl Mat2 {
     };
 
     /// Create a new matrix from elements
+    ///
+    /// # Example
+    /// ```
+    /// use scratchpad_rs::math::mat2::Mat2;
+    /// let m = Mat2::new(1.0, 2.0, 3.0, 4.0);
+    /// assert_eq!(m.m00, 1.0);
+    /// assert_eq!(m.m01, 2.0);
+    /// assert_eq!(m.m10, 3.0);
+    /// assert_eq!(m.m11, 4.0);
+    /// ```
     #[inline]
     pub fn new(m00: f32, m01: f32, m10: f32, m11: f32) -> Self {
         Self { m00, m01, m10, m11 }
@@ -59,6 +69,19 @@ impl Mat2 {
     }
 
     /// Calculate the determinant of the matrix
+    ///
+    /// The determinant represents the scaling factor of the linear transformation.
+    /// A determinant of 0 means the transformation collapses space to a lower dimension.
+    ///
+    /// # Example
+    /// ```
+    /// use scratchpad_rs::math::mat2::Mat2;
+    /// let identity = Mat2::IDENTITY;
+    /// assert_eq!(identity.det(), 1.0);
+    ///
+    /// let scale = Mat2::new(2.0, 0.0, 0.0, 3.0);
+    /// assert_eq!(scale.det(), 6.0);  // 2 * 3
+    /// ```
     #[inline]
     pub fn det(self) -> f32 {
         (self.m00 * self.m11) - (self.m01 * self.m10)
@@ -108,6 +131,19 @@ impl Mat2 {
     }
 
     /// Return a rotation matrix for a given angle in radians
+    ///
+    /// Creates a matrix that rotates points counter-clockwise around the origin.
+    ///
+    /// # Example
+    /// ```
+    /// use scratchpad_rs::math::mat2::Mat2;
+    /// use scratchpad_rs::math::vec2::Vec2;
+    /// use std::f32::consts::PI;
+    /// let rotate_90 = Mat2::rotate(PI / 2.0);
+    /// let point = Vec2::new(1.0, 0.0);  // Right
+    /// let rotated = rotate_90 * point;
+    /// assert!(rotated.near(Vec2::new(0.0, 1.0), 1e-6));  // Up
+    /// ```
     #[inline]
     pub fn rotate(angle: f32) -> Self {
         Self {

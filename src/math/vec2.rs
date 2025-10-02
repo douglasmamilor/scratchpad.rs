@@ -23,6 +23,14 @@ impl Vec2 {
     pub const Y: Self = Self { x: 0.0, y: 1.0 };
 
     /// Creates a new Vec2 with the given x and y components
+    ///
+    /// # Example
+    /// ```
+    /// use scratchpad_rs::math::vec2::Vec2;
+    /// let v = Vec2::new(3.0, 4.0);
+    /// assert_eq!(v.x, 3.0);
+    /// assert_eq!(v.y, 4.0);
+    /// ```
     #[inline]
     pub fn new(x: f32, y: f32) -> Self {
         Self { x, y }
@@ -34,6 +42,17 @@ impl Vec2 {
     /// - Positive: vectors point in similar directions
     /// - Zero: vectors are perpendicular
     /// - Negative: vectors point in opposite directions
+    ///
+    /// # Example
+    /// ```
+    /// use scratchpad_rs::math::vec2::Vec2;
+    /// let a = Vec2::new(1.0, 0.0);  // Right
+    /// let b = Vec2::new(0.0, 1.0);  // Up
+    /// assert_eq!(a.dot(b), 0.0);    // Perpendicular
+    ///
+    /// let c = Vec2::new(1.0, 1.0);  // Diagonal
+    /// assert!(a.dot(c) > 0.0);      // Similar direction
+    /// ```
     #[inline]
     pub fn dot(self, rhs: Vec2) -> f32 {
         (self.x * rhs.x) + (self.y * rhs.y)
@@ -43,6 +62,15 @@ impl Vec2 {
     ///
     /// Returns the signed area of the parallelogram formed by the two vectors.
     /// Positive when rhs is counter-clockwise from self, negative when clockwise.
+    ///
+    /// # Example
+    /// ```
+    /// use scratchpad_rs::math::vec2::Vec2;
+    /// let right = Vec2::new(1.0, 0.0);
+    /// let up = Vec2::new(0.0, 1.0);
+    /// assert_eq!(right.cross(up), 1.0);   // Right to up is counter-clockwise
+    /// assert_eq!(up.cross(right), -1.0);  // Up to right is clockwise
+    /// ```
     #[inline]
     pub fn cross(self, rhs: Self) -> f32 {
         self.x * rhs.y - self.y * rhs.x
@@ -67,6 +95,13 @@ impl Vec2 {
     }
 
     /// Returns the length (magnitude) of the vector
+    ///
+    /// # Example
+    /// ```
+    /// use scratchpad_rs::math::vec2::Vec2;
+    /// let v = Vec2::new(3.0, 4.0);
+    /// assert_eq!(v.len(), 5.0);  // 3-4-5 triangle
+    /// ```
     #[inline]
     pub fn len(self) -> f32 {
         self.len_sq().sqrt()
@@ -76,6 +111,18 @@ impl Vec2 {
     ///
     /// This prevents NaN results that would occur from normalizing a zero vector.
     /// Returns a vector pointing in the same direction but with length 1.0.
+    ///
+    /// # Example
+    /// ```
+    /// use scratchpad_rs::math::vec2::Vec2;
+    /// let v = Vec2::new(3.0, 4.0);
+    /// let normalized = v.normalize_or_zero();
+    /// assert_eq!(normalized.len(), 1.0);
+    /// assert_eq!(normalized, Vec2::new(0.6, 0.8));
+    ///
+    /// let zero = Vec2::ZERO;
+    /// assert_eq!(zero.normalize_or_zero(), Vec2::ZERO);
+    /// ```
     #[inline]
     pub fn normalize_or_zero(self) -> Self {
         let len = self.len();
@@ -99,6 +146,16 @@ impl Vec2 {
     ///
     /// When t=0, returns self. When t=1, returns to. When t=0.5, returns the midpoint.
     /// Useful for smooth transitions, animations, and blending between positions.
+    ///
+    /// # Example
+    /// ```
+    /// use scratchpad_rs::math::vec2::Vec2;
+    /// let start = Vec2::new(0.0, 0.0);
+    /// let end = Vec2::new(10.0, 20.0);
+    /// assert_eq!(start.lerp(end, 0.0), start);
+    /// assert_eq!(start.lerp(end, 1.0), end);
+    /// assert_eq!(start.lerp(end, 0.5), Vec2::new(5.0, 10.0));
+    /// ```
     #[inline]
     pub fn lerp(self, to: Self, t: f32) -> Self {
         self + (to - self) * t

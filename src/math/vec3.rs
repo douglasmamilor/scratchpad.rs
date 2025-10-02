@@ -47,6 +47,15 @@ impl Vec3 {
     };
 
     /// Creates a new Vec3 with the given x, y, and z components
+    ///
+    /// # Example
+    /// ```
+    /// use scratchpad_rs::math::vec3::Vec3;
+    /// let v = Vec3::new(1.0, 2.0, 3.0);
+    /// assert_eq!(v.x, 1.0);
+    /// assert_eq!(v.y, 2.0);
+    /// assert_eq!(v.z, 3.0);
+    /// ```
     #[inline]
     pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
@@ -58,6 +67,17 @@ impl Vec3 {
     /// - Positive: vectors point in similar directions
     /// - Zero: vectors are perpendicular
     /// - Negative: vectors point in opposite directions
+    ///
+    /// # Example
+    /// ```
+    /// use scratchpad_rs::math::vec3::Vec3;
+    /// let a = Vec3::new(1.0, 0.0, 0.0);  // X-axis
+    /// let b = Vec3::new(0.0, 1.0, 0.0);  // Y-axis
+    /// assert_eq!(a.dot(b), 0.0);         // Perpendicular
+    ///
+    /// let c = Vec3::new(1.0, 1.0, 0.0);  // Diagonal
+    /// assert!(a.dot(c) > 0.0);           // Similar direction
+    /// ```
     #[inline]
     pub fn dot(self, rhs: Vec3) -> f32 {
         (self.x * rhs.x) + (self.y * rhs.y) + (self.z * rhs.z)
@@ -69,6 +89,15 @@ impl Vec3 {
     /// The result follows the right-hand rule: if you point your right thumb
     /// along self and curl your fingers toward rhs, the result points in the
     /// direction of your palm.
+    ///
+    /// # Example
+    /// ```
+    /// use scratchpad_rs::math::vec3::Vec3;
+    /// let x = Vec3::new(1.0, 0.0, 0.0);
+    /// let y = Vec3::new(0.0, 1.0, 0.0);
+    /// let z = x.cross(y);
+    /// assert_eq!(z, Vec3::new(0.0, 0.0, 1.0));  // Z-axis
+    /// ```
     #[inline]
     pub fn cross(self, rhs: Self) -> Self {
         Self {
@@ -88,6 +117,13 @@ impl Vec3 {
     }
 
     /// Returns the length (magnitude) of the vector
+    ///
+    /// # Example
+    /// ```
+    /// use scratchpad_rs::math::vec3::Vec3;
+    /// let v = Vec3::new(3.0, 4.0, 0.0);
+    /// assert_eq!(v.len(), 5.0);  // 3-4-5 triangle
+    /// ```
     #[inline]
     pub fn len(self) -> f32 {
         self.len_sq().sqrt()
@@ -180,6 +216,16 @@ impl Vec3 {
     ///
     /// # Returns
     /// A normalized vector interpolated between self and to.
+    ///
+    /// # Example
+    /// ```
+    /// use scratchpad_rs::math::vec3::Vec3;
+    /// let x = Vec3::new(1.0, 0.0, 0.0);
+    /// let y = Vec3::new(0.0, 1.0, 0.0);
+    /// let interpolated = x.slerp(y, 0.5);
+    /// // Result is a unit vector halfway between X and Y axes
+    /// assert!((interpolated.len() - 1.0).abs() < 1e-6);
+    /// ```
     #[inline]
     pub fn slerp(self, to: Self, t: f32) -> Self {
         let dot = self.dot(to).clamp(-1.0, 1.0);
