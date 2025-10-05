@@ -2,6 +2,7 @@ mod circle;
 mod ellipse;
 mod line;
 mod line_aa;
+mod polygon;
 mod rectangle;
 
 use crate::color::Color;
