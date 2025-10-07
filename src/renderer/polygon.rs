@@ -20,7 +20,7 @@ impl<'a> Renderer<'a> {
     /// renderer.draw_polygon_outline(&vertices, &Color::RED);
     /// ```
     pub fn draw_polygon(&mut self, vertices: &[Vec2], color: &Color) {
-        if vertices.is_empty() {
+        if vertices.len() < 2 {
             return;
         }
 
@@ -35,5 +35,27 @@ impl<'a> Renderer<'a> {
         let last = vertices.last().unwrap();
         let first = vertices.first().unwrap();
         self.draw_line_aa((*last).into(), (*first).into(), color);
+    }
+
+    pub fn draw_regular_polygon(
+        &mut self,
+        ctr: Vec2,
+        r: f32,
+        rot: f32,
+        sides: usize,
+        color: &Color,
+    ) {
+        let step = std::f32::consts::TAU / sides as f32;
+        let mut vertices: Vec<Vec2> = Vec::with_capacity(sides);
+
+        for i in 0..sides {
+            let angle = rot + i as f32 * step;
+            let x = ctr.x + r * angle.cos();
+            let y = ctr.y + r * angle.sin();
+
+            vertices.push(Vec2::from((x, y)))
+        }
+
+        self.draw_polygon(&vertices, color);
     }
 }

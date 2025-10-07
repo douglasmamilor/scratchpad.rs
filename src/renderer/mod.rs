@@ -1,9 +1,11 @@
 mod circle;
 mod ellipse;
+mod fill;
 mod line;
 mod line_aa;
 mod polygon;
 mod rectangle;
+mod triangle;
 
 use crate::color::Color;
 use crate::framebuffer::FrameBuffer;
