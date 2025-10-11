@@ -30,6 +30,16 @@ impl<'a> Renderer<'a> {
     }
 
     #[inline]
+    fn in_bounds_y(&self, y: i32) -> bool {
+        y >= 0 && (y as i64) < self.framebuffer.height() as i64
+    }
+
+    #[inline]
+    fn in_bounds_x(&self, y: i32) -> bool {
+        y >= 0 && (y as i64) < self.framebuffer.height() as i64
+    }
+
+    #[inline]
     fn in_bounds(&self, x: i32, y: i32) -> bool {
         x >= 0
             && y >= 0

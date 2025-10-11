@@ -11,13 +11,21 @@ impl<'a> Renderer<'a> {
     ///
     /// # Example
     /// ```
+    /// use scratchpad_rs::color::Color;
+    /// use scratchpad_rs::math::vec2::Vec2;
+    /// use scratchpad_rs::renderer::Renderer;
+    /// use scratchpad_rs::framebuffer::FrameBuffer;
+    /// 
+    /// let mut framebuffer = FrameBuffer::new(800, 600);
+    /// let mut renderer = Renderer::new(&mut framebuffer);
+    /// 
     /// let vertices = vec![
     ///     Vec2::new(100.0, 100.0),  // Top
     ///     Vec2::new(150.0, 150.0),  // Right
     ///     Vec2::new(100.0, 200.0),  // Bottom
     ///     Vec2::new(50.0, 150.0),   // Left
     /// ];
-    /// renderer.draw_polygon_outline(&vertices, &Color::RED);
+    /// renderer.draw_polygon(&vertices, &Color::RED);
     /// ```
     pub fn draw_polygon(&mut self, vertices: &[Vec2], color: &Color) {
         if vertices.len() < 2 {
