@@ -13,6 +13,11 @@ impl<'a> Renderer<'a> {
     /// ```
     /// use scratchpad_rs::math::Vec2;
     /// use scratchpad_rs::color::Color;
+    /// use scratchpad_rs::framebuffer::FrameBuffer;
+    /// use scratchpad_rs::renderer::Renderer;
+    ///
+    /// let mut frame_buffer = FrameBuffer::new(100, 100);
+    /// let mut renderer = Renderer::new(&mut frame_buffer);
     ///
     /// // Draw rectangle from (10.0, 10.0) to (50.0, 30.0)
     /// renderer.draw_rect(Vec2::new(10.0, 10.0), Vec2::new(50.0, 30.0), Color::RED);
@@ -63,6 +68,11 @@ impl<'a> Renderer<'a> {
     /// ```
     /// use scratchpad_rs::math::Vec2;
     /// use scratchpad_rs::color::Color;
+    /// use scratchpad_rs::framebuffer::FrameBuffer;
+    /// use scratchpad_rs::renderer::Renderer;
+    ///
+    /// let mut frame_buffer = FrameBuffer::new(100, 100);
+    /// let mut renderer = Renderer::new(&mut frame_buffer);
     ///
     /// // Fill rectangle from (10.0, 10.0) to (50.0, 30.0)
     /// renderer.fill_rect(Vec2::new(10.0, 10.0), Vec2::new(50.0, 30.0), Color::BLUE);
@@ -99,6 +109,11 @@ impl<'a> Renderer<'a> {
     /// ```
     /// use scratchpad_rs::math::Vec2;
     /// use scratchpad_rs::color::Color;
+    /// use scratchpad_rs::framebuffer::FrameBuffer;
+    /// use scratchpad_rs::renderer::Renderer;
+    ///
+    /// let mut frame_buffer = FrameBuffer::new(100, 100);
+    /// let mut renderer = Renderer::new(&mut frame_buffer);
     ///
     /// // Draw crisp rectangle from (10.5, 10.5) to (50.5, 30.5)
     /// renderer.draw_rect_pixel(Vec2::new(10.5, 10.5), Vec2::new(50.5, 30.5), Color::WHITE);

@@ -12,6 +12,11 @@ impl<'a> Renderer<'a> {
     /// ```
     /// use scratchpad_rs::math::Vec2;
     /// use scratchpad_rs::color::Color;
+    /// use scratchpad_rs::framebuffer::FrameBuffer;
+    /// use scratchpad_rs::renderer::Renderer;
+    /// 
+    /// let mut frame_buffer = FrameBuffer::new(100, 100);
+    /// let mut renderer = Renderer::new(&mut frame_buffer);
     /// 
     /// // Draw ellipse at (100.5, 50.0) with radii 30.0 and 20.0
     /// renderer.draw_ellipse(Vec2::new(100.5, 50.0), 30.0, 20.0, Color::RED);
@@ -125,6 +130,11 @@ impl<'a> Renderer<'a> {
     /// ```
     /// use scratchpad_rs::math::Vec2;
     /// use scratchpad_rs::color::Color;
+    /// use scratchpad_rs::framebuffer::FrameBuffer;
+    /// use scratchpad_rs::renderer::Renderer;
+    /// 
+    /// let mut frame_buffer = FrameBuffer::new(100, 100);
+    /// let mut renderer = Renderer::new(&mut frame_buffer);
     /// 
     /// // Fill ellipse at (100.5, 50.0) with radii 30.0 and 20.0
     /// renderer.fill_ellipse(Vec2::new(100.5, 50.0), 30.0, 20.0, Color::BLUE);
