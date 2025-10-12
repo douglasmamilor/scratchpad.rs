@@ -126,7 +126,7 @@ impl<'a> Renderer<'a> {
     pub fn draw_line_aa(&mut self, start: Vec2, end: Vec2, color: Color) {
         let start_tuple = (start.x, start.y);
         let end_tuple = (end.x, end.y);
-        
+
         Renderer::visit_line_points_aa(start_tuple, end_tuple, |(x, y, coverage)| {
             let t = coverage.clamp(0.0, 1.0);
             let scaled = Color::RGBA(

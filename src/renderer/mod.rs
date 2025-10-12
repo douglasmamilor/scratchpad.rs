@@ -10,10 +10,9 @@ mod triangle;
 
 use crate::color::Color;
 use crate::framebuffer::FrameBuffer;
-use crate::math::vec2::Vec2;
 
 // Re-export helper functions for use in renderer implementations
-pub use helpers::{quantize_point, quantize_hspan, quantize_vspan, snap_axis};
+pub use helpers::{quantize_hspan, quantize_point, quantize_vspan, snap_axis};
 
 pub struct Renderer<'a> {
     framebuffer: &'a mut FrameBuffer,
