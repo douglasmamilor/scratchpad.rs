@@ -1,5 +1,5 @@
 use crate::color::Color;
-use crate::renderer::Renderer;
+use crate::renderer::{Renderer, quantize_point, quantize_hspan, quantize_vspan};
 use crate::math::vec2::Vec2;
 
 impl<'a> Renderer<'a> {
@@ -23,29 +23,22 @@ impl<'a> Renderer<'a> {
 
         // Degenerate case: single point
         if rx == 0.0 && ry == 0.0 {
-            self.set_pixel((center.x.round() as i32, center.y.round() as i32), color);
+            let (ix, iy) = quantize_point(center);
+            self.set_pixel((ix, iy), color);
             return;
         }
 
         // Degenerate case: horizontal line
         if ry == 0.0 {
-            self.hspan(
-                center.y.round() as i32,
-                (center.x - rx).round() as i32,
-                (center.x + rx).round() as i32,
-                color
-            );
+            let (iy, x0i, x1i) = quantize_hspan(center.y, center.x - rx, center.x + rx);
+            self.hspan(iy, x0i, x1i, color);
             return;
         }
 
         // Degenerate case: vertical line
         if rx == 0.0 {
-            self.vspan(
-                center.x.round() as i32,
-                (center.y - ry).round() as i32,
-                (center.y + ry).round() as i32,
-                color
-            );
+            let (ix, y0i, y1i) = quantize_vspan(center.x, center.y - ry, center.y + ry);
+            self.vspan(ix, y0i, y1i, color);
             return;
         }
 
@@ -65,10 +58,15 @@ impl<'a> Renderer<'a> {
 
         // Helper: plot 4 symmetric points
         let mut plot4 = |cx: f32, cy: f32, x: f32, y: f32| {
-            self.set_pixel(((cx + x).round() as i32, (cy + y).round() as i32), color);
-            self.set_pixel(((cx - x).round() as i32, (cy + y).round() as i32), color);
-            self.set_pixel(((cx + x).round() as i32, (cy - y).round() as i32), color);
-            self.set_pixel(((cx - x).round() as i32, (cy - y).round() as i32), color);
+            let (ix1, iy1) = quantize_point(Vec2::new(cx + x, cy + y));
+            let (ix2, iy2) = quantize_point(Vec2::new(cx - x, cy + y));
+            let (ix3, iy3) = quantize_point(Vec2::new(cx + x, cy - y));
+            let (ix4, iy4) = quantize_point(Vec2::new(cx - x, cy - y));
+            
+            self.set_pixel((ix1, iy1), color);
+            self.set_pixel((ix2, iy2), color);
+            self.set_pixel((ix3, iy3), color);
+            self.set_pixel((ix4, iy4), color);
         };
 
         // ----------------
@@ -138,27 +136,20 @@ impl<'a> Renderer<'a> {
 
         // Degenerates
         if rx == 0.0 && ry == 0.0 {
-            self.set_pixel((center.x.round() as i32, center.y.round() as i32), color);
+            let (ix, iy) = quantize_point(center);
+            self.set_pixel((ix, iy), color);
             return;
         }
         if ry == 0.0 {
             // single horizontal span on y = cy
-            self.hspan(
-                center.y.round() as i32,
-                (center.x - rx).round() as i32,
-                (center.x + rx).round() as i32,
-                color
-            );
+            let (iy, x0i, x1i) = quantize_hspan(center.y, center.x - rx, center.x + rx);
+            self.hspan(iy, x0i, x1i, color);
             return;
         }
         if rx == 0.0 {
             // vertical line on x = cx
-            self.vspan(
-                center.x.round() as i32,
-                (center.y - ry).round() as i32,
-                (center.y + ry).round() as i32,
-                color
-            );
+            let (ix, y0i, y1i) = quantize_vspan(center.x, center.y - ry, center.y + ry);
+            self.vspan(ix, y0i, y1i, color);
             return;
         }
 
@@ -180,15 +171,15 @@ impl<'a> Renderer<'a> {
 
         // Helper that draws the two horizontal spans for current (x, y)
         let draw_span_pair = |cx: f32, cy: f32, x: f32, y: f32, this: &mut Renderer<'a>| {
-            let x_left = (cx - x).round() as i32;
-            let x_right = (cx + x).round() as i32;
-
             if y == 0.0 {
                 // Both rows coincide at y = cy
-                this.hspan(cy.round() as i32, x_left, x_right, color);
+                let (iy, x0i, x1i) = quantize_hspan(cy, cx - x, cx + x);
+                this.hspan(iy, x0i, x1i, color);
             } else {
-                this.hspan((cy + y).round() as i32, x_left, x_right, color);
-                this.hspan((cy - y).round() as i32, x_left, x_right, color);
+                let (iy1, x0i1, x1i1) = quantize_hspan(cy + y, cx - x, cx + x);
+                let (iy2, x0i2, x1i2) = quantize_hspan(cy - y, cx - x, cx + x);
+                this.hspan(iy1, x0i1, x1i1, color);
+                this.hspan(iy2, x0i2, x1i2, color);
             }
         };
 

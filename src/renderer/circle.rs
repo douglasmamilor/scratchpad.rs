@@ -1,5 +1,5 @@
 use crate::color::Color;
-use crate::renderer::Renderer;
+use crate::renderer::{Renderer, quantize_point, quantize_hspan};
 use crate::math::vec2::Vec2;
 
 impl<'a> Renderer<'a> {
@@ -22,7 +22,8 @@ impl<'a> Renderer<'a> {
         }
 
         if radius == 0.0 {
-            self.set_pixel((center.x.round() as i32, center.y.round() as i32), color);
+            let (ix, iy) = quantize_point(center);
+            self.set_pixel((ix, iy), color);
             return;
         }
 
@@ -32,15 +33,23 @@ impl<'a> Renderer<'a> {
         let mut D = 1.0 - radius;
 
         let mut plot = |cx: f32, cy: f32, x: f32, y: f32| {
-            self.set_pixel(((cx + x).round() as i32, (cy + y).round() as i32), color); // 1st octant (+x direction)
-            self.set_pixel(((cx - x).round() as i32, (cy + y).round() as i32), color); // reflect across y-axis
-            self.set_pixel(((cx + x).round() as i32, (cy - y).round() as i32), color); // reflect across x-axis
-            self.set_pixel(((cx - x).round() as i32, (cy - y).round() as i32), color); // reflect across both axes
-
-            self.set_pixel(((cx + y).round() as i32, (cy + x).round() as i32), color); // reflect across line y=x
-            self.set_pixel(((cx - y).round() as i32, (cy + x).round() as i32), color); // reflect across line y=x then across y-axis
-            self.set_pixel(((cx + y).round() as i32, (cy - x).round() as i32), color); // reflect across y=x, then across x-axis
-            self.set_pixel(((cx - y).round() as i32, (cy - x).round() as i32), color); // reflect across line y=-x
+            let (ix1, iy1) = quantize_point(Vec2::new(cx + x, cy + y));
+            let (ix2, iy2) = quantize_point(Vec2::new(cx - x, cy + y));
+            let (ix3, iy3) = quantize_point(Vec2::new(cx + x, cy - y));
+            let (ix4, iy4) = quantize_point(Vec2::new(cx - x, cy - y));
+            let (ix5, iy5) = quantize_point(Vec2::new(cx + y, cy + x));
+            let (ix6, iy6) = quantize_point(Vec2::new(cx - y, cy + x));
+            let (ix7, iy7) = quantize_point(Vec2::new(cx + y, cy - x));
+            let (ix8, iy8) = quantize_point(Vec2::new(cx - y, cy - x));
+            
+            self.set_pixel((ix1, iy1), color); // 1st octant (+x direction)
+            self.set_pixel((ix2, iy2), color); // reflect across y-axis
+            self.set_pixel((ix3, iy3), color); // reflect across x-axis
+            self.set_pixel((ix4, iy4), color); // reflect across both axes
+            self.set_pixel((ix5, iy5), color); // reflect across line y=x
+            self.set_pixel((ix6, iy6), color); // reflect across line y=x then across y-axis
+            self.set_pixel((ix7, iy7), color); // reflect across y=x, then across x-axis
+            self.set_pixel((ix8, iy8), color); // reflect across line y=-x
         };
 
         while x >= y {
@@ -77,7 +86,8 @@ impl<'a> Renderer<'a> {
         }
 
         if radius == 0.0 {
-            self.set_pixel((center.x.round() as i32, center.y.round() as i32), color);
+            let (ix, iy) = quantize_point(center);
+            self.set_pixel((ix, iy), color);
             return;
         }
 
@@ -88,30 +98,17 @@ impl<'a> Renderer<'a> {
 
         while x >= y {
             // 4 symmetric spans (covering all 8 octants)
-            self.hspan(
-                (center.y + y).round() as i32,
-                (center.x - x).round() as i32,
-                (center.x + x).round() as i32,
-                color
-            );
-            self.hspan(
-                (center.y - y).round() as i32,
-                (center.x - x).round() as i32,
-                (center.x + x).round() as i32,
-                color
-            );
-            self.hspan(
-                (center.y + x).round() as i32,
-                (center.x - y).round() as i32,
-                (center.x + y).round() as i32,
-                color
-            );
-            self.hspan(
-                (center.y - x).round() as i32,
-                (center.x - y).round() as i32,
-                (center.x + y).round() as i32,
-                color
-            );
+            let (iy1, x0i1, x1i1) = quantize_hspan(center.y + y, center.x - x, center.x + x);
+            self.hspan(iy1, x0i1, x1i1, color);
+            
+            let (iy2, x0i2, x1i2) = quantize_hspan(center.y - y, center.x - x, center.x + x);
+            self.hspan(iy2, x0i2, x1i2, color);
+            
+            let (iy3, x0i3, x1i3) = quantize_hspan(center.y + x, center.x - y, center.x + y);
+            self.hspan(iy3, x0i3, x1i3, color);
+            
+            let (iy4, x0i4, x1i4) = quantize_hspan(center.y - x, center.x - y, center.x + y);
+            self.hspan(iy4, x0i4, x1i4, color);
 
             // Midpoint step: N vs NW
             y += 1.0;
