@@ -186,6 +186,7 @@ impl Vec3 {
     ///
     /// Returns the component of this vector that lies along the direction of `onto`.
     /// The result is a scalar multiple of `onto` that represents the projection.
+    /// i.e ((b.a)*a)/len_q(a)
     #[inline]
     pub fn project_onto(self, onto: Self) -> Self {
         let len_sq = onto.len_sq();
