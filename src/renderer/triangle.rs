@@ -31,9 +31,9 @@ impl<'a> Renderer<'a> {
             return;
         }
 
-        self.draw_line_aa(a.into(), b.into(), color);
-        self.draw_line_aa(b.into(), c.into(), color);
-        self.draw_line_aa(c.into(), a.into(), color);
+        self.draw_line_aa(a, b, color);
+        self.draw_line_aa(b, c, color);
+        self.draw_line_aa(c, a, color);
     }
 
     /// Fill a triangle using a scanline algorithm.
@@ -124,7 +124,7 @@ impl<'a> Renderer<'a> {
 
         for y in y_start..y_end {
             let (xa, xb) = if x1 <= x2 { (x1, x2) } else { (x2, x1) };
-            self.draw_line_aa((xa, y as f32), (xb, y as f32), color);
+            self.draw_line_aa(Vec2::new(xa, y as f32), Vec2::new(xb, y as f32), color);
             x1 += inv_slope_1;
             x2 += inv_slope_2;
         }
@@ -148,7 +148,7 @@ impl<'a> Renderer<'a> {
 
         for y in y_start..y_end {
             let (xa, xb) = if x1 <= x2 { (x1, x2) } else { (x2, x1) };
-            self.draw_line_aa((xa, y as f32), (xb, y as f32), color);
+            self.draw_line_aa(Vec2::new(xa, y as f32), Vec2::new(xb, y as f32), color);
             x1 += inv_slope_1;
             x2 += inv_slope_2;
         }

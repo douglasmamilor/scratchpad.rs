@@ -34,15 +34,13 @@ impl<'a> Renderer<'a> {
 
         // walk each consecutive pair
         for w in vertices.windows(2) {
-            let start: (f32, f32) = w[0].into();
-            let end: (f32, f32) = w[1].into();
-            self.draw_line_aa(start, end, color);
+            self.draw_line_aa(w[0], w[1], color);
         }
 
         // close polygon
         let last = vertices.last().unwrap();
         let first = vertices.first().unwrap();
-        self.draw_line_aa((*last).into(), (*first).into(), color);
+        self.draw_line_aa(*last, *first, color);
     }
 
     pub fn draw_regular_polygon(
