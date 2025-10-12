@@ -1,5 +1,6 @@
 use super::Renderer;
 use crate::color::Color;
+use crate::math::vec2::Vec2;
 
 impl<'a> Renderer<'a> {
     pub fn flood_fill<F>(&mut self, px: (i32, i32), new_color: Color, matches: F, conn_8: bool)
@@ -364,7 +365,7 @@ mod tests {
     fn flood_fill_circle_outline() {
         let pixels = collect_pixels(20, 20, |renderer| {
             // Draw a circle outline
-            renderer.draw_circle((10, 10), 5, Color::WHITE);
+            renderer.draw_circle(Vec2::new(10.0, 10.0), 5.0, Color::WHITE);
             // Try to fill the interior - but there's no interior with just an outline!
             renderer.flood_fill((10, 10), Color::RED, |target, _new| target == Color::WHITE, false);
         });
@@ -381,7 +382,7 @@ mod tests {
             // Draw a filled circle first
             renderer.fill_rect((5, 5), (10, 10), Color::WHITE);
             // Then draw a circle outline on top
-            renderer.draw_circle((10, 10), 4, Color::BLACK);
+            renderer.draw_circle(Vec2::new(10.0, 10.0), 4.0, Color::BLACK);
             // Now fill the interior (between the outline and the filled area)
             renderer.flood_fill((10, 10), Color::RED, |target, _new| target == Color::WHITE, false);
         });
