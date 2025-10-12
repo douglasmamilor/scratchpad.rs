@@ -1,4 +1,4 @@
-use crate::math::mat3::Mat3;
+use crate::math::Mat3;
 
 pub struct TransformStack {
     stack: Vec<Mat3>,
@@ -52,7 +52,7 @@ impl Default for TransformStack {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::vec2::Vec2;
+    use crate::math::Vec2;
     use std::f32::consts::PI;
 
     #[test]
