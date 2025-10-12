@@ -122,7 +122,7 @@ impl<'a> Renderer<'a> {
         points
     }
 
-    pub fn draw_line_aa(&mut self, start: (f32, f32), end: (f32, f32), color: &Color) {
+    pub fn draw_line_aa(&mut self, start: (f32, f32), end: (f32, f32), color: Color) {
         Renderer::visit_line_points_aa(start, end, |(x, y, coverage)| {
             let t = coverage.clamp(0.0, 1.0);
             let scaled = Color::RGBA(
@@ -132,7 +132,7 @@ impl<'a> Renderer<'a> {
                 (color.a as f32 * t).round() as u8,
             );
 
-            self.set_pixel((x, y), &scaled);
+            self.set_pixel((x, y), scaled);
             true
         });
     }

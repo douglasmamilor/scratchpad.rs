@@ -61,7 +61,7 @@ impl<'a> Renderer<'a> {
     }
 
     #[inline]
-    pub fn set_pixel(&mut self, point: (i32, i32), color: &Color) {
+    pub fn set_pixel(&mut self, point: (i32, i32), color: Color) {
         if self.in_bounds(point.0, point.1) {
             self.framebuffer
                 .set_pixel(point.0 as usize, point.1 as usize, color.to_u32());
@@ -69,12 +69,12 @@ impl<'a> Renderer<'a> {
     }
 
     #[inline]
-    pub fn clear(&mut self, color: &Color) {
+    pub fn clear(&mut self, color: Color) {
         self.framebuffer.clear(color.to_u32());
     }
 
     #[inline]
-    pub fn hspan(&mut self, y: i32, mut x0: i32, mut x: i32, color: &Color) {
+    pub fn hspan(&mut self, y: i32, mut x0: i32, mut x: i32, color: Color) {
         if x0 > x {
             std::mem::swap(&mut x, &mut x0);
         }
@@ -98,7 +98,7 @@ impl<'a> Renderer<'a> {
     }
 
     #[inline]
-    pub fn vspan(&mut self, x: i32, mut y0: i32, mut y: i32, color: &Color) {
+    pub fn vspan(&mut self, x: i32, mut y0: i32, mut y: i32, color: Color) {
         if y0 > y {
             std::mem::swap(&mut y, &mut y0);
         }

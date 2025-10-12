@@ -38,7 +38,7 @@ impl<'a> Renderer<'a> {
 
         let mut stack: Vec<(i32, i32, i32)> = Vec::new();
         let (xl, xr) = expand_run(px.0, px.1);
-        self.hspan(px_y, xl, xr, &new_color);
+        self.hspan(px_y, xl, xr, new_color);
         stack.push((px_y, xl, xr));
 
         while let Some((y, xl, xr)) = stack.pop() {
@@ -85,7 +85,7 @@ impl<'a> Renderer<'a> {
                     }
                     let run_end = x - 1;
 
-                    self.hspan(yn, run_start, run_end, &new_color);
+                    self.hspan(yn, run_start, run_end, new_color);
                     stack.push((yn, run_start, run_end));
                 }
             }
@@ -129,7 +129,7 @@ mod tests {
     fn flood_fill_simple_rectangle() {
         let pixels = collect_pixels(10, 10, |renderer| {
             // Draw a rectangle outline
-            renderer.draw_rect((2, 2), (6, 6), &Color::WHITE);
+            renderer.draw_rect((2, 2), (6, 6), Color::WHITE);
             // Fill the interior
             renderer.flood_fill(
                 (5, 5),
@@ -149,15 +149,15 @@ mod tests {
         // Create a shape where 4-connected and 8-connected give different results
         let pixels_4 = collect_pixels(10, 10, |renderer| {
             // Draw a shape with diagonal gap
-            renderer.set_pixel((3, 3), &Color::WHITE);
-            renderer.set_pixel((4, 3), &Color::WHITE);
-            renderer.set_pixel((5, 3), &Color::WHITE);
-            renderer.set_pixel((3, 4), &Color::WHITE);
+            renderer.set_pixel((3, 3), Color::WHITE);
+            renderer.set_pixel((4, 3), Color::WHITE);
+            renderer.set_pixel((5, 3), Color::WHITE);
+            renderer.set_pixel((3, 4), Color::WHITE);
             // Gap here - no pixel at (4, 4)
-            renderer.set_pixel((5, 4), &Color::WHITE);
-            renderer.set_pixel((3, 5), &Color::WHITE);
-            renderer.set_pixel((4, 5), &Color::WHITE);
-            renderer.set_pixel((5, 5), &Color::WHITE);
+            renderer.set_pixel((5, 4), Color::WHITE);
+            renderer.set_pixel((3, 5), Color::WHITE);
+            renderer.set_pixel((4, 5), Color::WHITE);
+            renderer.set_pixel((5, 5), Color::WHITE);
 
             // 4-connected fill should not cross the diagonal gap
             renderer.flood_fill(
@@ -170,15 +170,15 @@ mod tests {
 
         let pixels_8 = collect_pixels(10, 10, |renderer| {
             // Draw the same shape
-            renderer.set_pixel((3, 3), &Color::WHITE);
-            renderer.set_pixel((4, 3), &Color::WHITE);
-            renderer.set_pixel((5, 3), &Color::WHITE);
-            renderer.set_pixel((3, 4), &Color::WHITE);
+            renderer.set_pixel((3, 3), Color::WHITE);
+            renderer.set_pixel((4, 3), Color::WHITE);
+            renderer.set_pixel((5, 3), Color::WHITE);
+            renderer.set_pixel((3, 4), Color::WHITE);
             // Gap here - no pixel at (4, 4)
-            renderer.set_pixel((5, 4), &Color::WHITE);
-            renderer.set_pixel((3, 5), &Color::WHITE);
-            renderer.set_pixel((4, 5), &Color::WHITE);
-            renderer.set_pixel((5, 5), &Color::WHITE);
+            renderer.set_pixel((5, 4), Color::WHITE);
+            renderer.set_pixel((3, 5), Color::WHITE);
+            renderer.set_pixel((4, 5), Color::WHITE);
+            renderer.set_pixel((5, 5), Color::WHITE);
 
             // 8-connected fill should cross the diagonal gap
             renderer.flood_fill(
@@ -199,8 +199,8 @@ mod tests {
     fn flood_fill_boundary_detection() {
         let pixels = collect_pixels(10, 10, |renderer| {
             // Draw two separate regions with different boundary colors
-            renderer.draw_rect((1, 1), (3, 3), &Color::RED);
-            renderer.draw_rect((5, 5), (3, 3), &Color::BLUE);
+            renderer.draw_rect((1, 1), (3, 3), Color::RED);
+            renderer.draw_rect((5, 5), (3, 3), Color::BLUE);
 
             // Fill only the red-bounded region
             renderer.flood_fill(
@@ -220,7 +220,7 @@ mod tests {
     fn flood_fill_already_filled() {
         let pixels = collect_pixels(10, 10, |renderer| {
             // Fill an area first
-            renderer.fill_rect((2, 2), (4, 4), &Color::RED);
+            renderer.fill_rect((2, 2), (4, 4), Color::RED);
 
             // Try to flood fill the same area with same color
             renderer.flood_fill(
@@ -255,7 +255,7 @@ mod tests {
     fn flood_fill_single_pixel() {
         let pixels = collect_pixels(10, 10, |renderer| {
             // Draw a single pixel
-            renderer.set_pixel((5, 5), &Color::WHITE);
+            renderer.set_pixel((5, 5), Color::WHITE);
 
             // Fill it
             renderer.flood_fill(
@@ -275,7 +275,7 @@ mod tests {
     fn flood_fill_line() {
         let pixels = collect_pixels(10, 10, |renderer| {
             // Draw a horizontal line
-            renderer.draw_line((2, 5), (7, 5), &Color::WHITE);
+            renderer.draw_line((2, 5), (7, 5), Color::WHITE);
 
             // Fill it
             renderer.flood_fill(
@@ -295,10 +295,10 @@ mod tests {
     fn flood_fill_complex_shape() {
         let pixels = collect_pixels(15, 15, |renderer| {
             // Draw a complex L-shaped boundary
-            renderer.draw_rect((2, 2), (6, 2), &Color::WHITE); // Top horizontal
-            renderer.draw_rect((2, 2), (2, 6), &Color::WHITE); // Left vertical
-            renderer.draw_rect((2, 6), (4, 2), &Color::WHITE); // Bottom horizontal (shorter)
-            renderer.draw_rect((4, 4), (2, 4), &Color::WHITE); // Right vertical (shorter)
+            renderer.draw_rect((2, 2), (6, 2), Color::WHITE); // Top horizontal
+            renderer.draw_rect((2, 2), (2, 6), Color::WHITE); // Left vertical
+            renderer.draw_rect((2, 6), (4, 2), Color::WHITE); // Bottom horizontal (shorter)
+            renderer.draw_rect((4, 4), (2, 4), Color::WHITE); // Right vertical (shorter)
 
             // Fill the interior
             renderer.flood_fill(
@@ -318,12 +318,12 @@ mod tests {
     fn flood_fill_custom_matching_function() {
         let pixels = collect_pixels(10, 10, |renderer| {
             // Draw pixels with different colors
-            renderer.set_pixel((2, 2), &Color::RED);
-            renderer.set_pixel((3, 2), &Color::GREEN);
-            renderer.set_pixel((4, 2), &Color::BLUE);
-            renderer.set_pixel((2, 3), &Color::RED);
-            renderer.set_pixel((3, 3), &Color::GREEN);
-            renderer.set_pixel((4, 3), &Color::BLUE);
+            renderer.set_pixel((2, 2), Color::RED);
+            renderer.set_pixel((3, 2), Color::GREEN);
+            renderer.set_pixel((4, 2), Color::BLUE);
+            renderer.set_pixel((2, 3), Color::RED);
+            renderer.set_pixel((3, 3), Color::GREEN);
+            renderer.set_pixel((4, 3), Color::BLUE);
 
             // Fill only red and green pixels (not blue)
             renderer.flood_fill(
@@ -344,7 +344,7 @@ mod tests {
     fn flood_fill_performance_large_area() {
         let pixels = collect_pixels(50, 50, |renderer| {
             // Draw a large rectangle outline
-            renderer.draw_rect((5, 5), (40, 40), &Color::WHITE);
+            renderer.draw_rect((5, 5), (40, 40), Color::WHITE);
 
             // Fill the large interior
             renderer.flood_fill(
@@ -364,7 +364,7 @@ mod tests {
     fn flood_fill_circle_outline() {
         let pixels = collect_pixels(20, 20, |renderer| {
             // Draw a circle outline
-            renderer.draw_circle((10, 10), 5, &Color::WHITE);
+            renderer.draw_circle((10, 10), 5, Color::WHITE);
             // Try to fill the interior - but there's no interior with just an outline!
             renderer.flood_fill((10, 10), Color::RED, |target, _new| target == Color::WHITE, false);
         });
@@ -379,9 +379,9 @@ mod tests {
     fn flood_fill_filled_circle() {
         let pixels = collect_pixels(20, 20, |renderer| {
             // Draw a filled circle first
-            renderer.fill_rect((5, 5), (10, 10), &Color::WHITE);
+            renderer.fill_rect((5, 5), (10, 10), Color::WHITE);
             // Then draw a circle outline on top
-            renderer.draw_circle((10, 10), 4, &Color::BLACK);
+            renderer.draw_circle((10, 10), 4, Color::BLACK);
             // Now fill the interior (between the outline and the filled area)
             renderer.flood_fill((10, 10), Color::RED, |target, _new| target == Color::WHITE, false);
         });

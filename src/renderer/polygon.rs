@@ -25,9 +25,9 @@ impl<'a> Renderer<'a> {
     ///     Vec2::new(100.0, 200.0),  // Bottom
     ///     Vec2::new(50.0, 150.0),   // Left
     /// ];
-    /// renderer.draw_polygon(&vertices, &Color::RED);
+    /// renderer.draw_polygon(&vertices, Color::RED);
     /// ```
-    pub fn draw_polygon(&mut self, vertices: &[Vec2], color: &Color) {
+    pub fn draw_polygon(&mut self, vertices: &[Vec2], color: Color) {
         if vertices.len() < 2 {
             return;
         }
@@ -51,7 +51,7 @@ impl<'a> Renderer<'a> {
         r: f32,
         rot: f32,
         sides: usize,
-        color: &Color,
+        color: Color,
     ) {
         let step = std::f32::consts::TAU / sides as f32;
         let mut vertices: Vec<Vec2> = Vec::with_capacity(sides);

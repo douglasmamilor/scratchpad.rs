@@ -3,7 +3,7 @@ use crate::renderer::{Color, Renderer};
 impl<'a> Renderer<'a> {
     /// Draw outline for axis-aligned ellipse via midpoint (Bresenham-style) algorithm.
     /// Center `ctr` in pixels; radii `rx`, `ry` must be non-negative.
-    pub fn draw_ellipse(&mut self, ctr: (i32, i32), rx: i32, ry: i32, color: &Color) {
+    pub fn draw_ellipse(&mut self, ctr: (i32, i32), rx: i32, ry: i32, color: Color) {
         if rx < 0 && ry < 0 {
             return;
         }
@@ -99,7 +99,7 @@ impl<'a> Renderer<'a> {
 
     /// Filled, axis-aligned ellipse via midpoint (Bresenham-style) algorithm.
     /// Center `ctr` in pixels; radii `rx`, `ry` must be non-negative.
-    pub fn fill_ellipse(&mut self, ctr: (i32, i32), rx: i32, ry: i32, color: &Color) {
+    pub fn fill_ellipse(&mut self, ctr: (i32, i32), rx: i32, ry: i32, color: Color) {
         if rx < 0 || ry < 0 {
             return;
         }

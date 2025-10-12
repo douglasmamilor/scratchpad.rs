@@ -57,7 +57,7 @@ impl<'a> Renderer<'a> {
         points
     }
 
-    pub fn draw_line(&mut self, start: (i32, i32), end: (i32, i32), color: &Color) {
+    pub fn draw_line(&mut self, start: (i32, i32), end: (i32, i32), color: Color) {
         // Note: the visitor lets us draw without allocating the intermediate Vec
         Renderer::visit_line_points(start, end, |point| {
             self.set_pixel(point, color);

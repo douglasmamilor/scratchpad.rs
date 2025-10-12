@@ -18,11 +18,11 @@ impl<'a> Renderer<'a> {
     ///     Vec2::new(100.0, 100.0),
     ///     Vec2::new(50.0, 200.0),
     ///     Vec2::new(150.0, 200.0),
-    ///     &Color::RED,
+    ///     Color::RED,
     /// );
     ///
     #[inline]
-    pub fn draw_triangle(&mut self, a: Vec2, b: Vec2, c: Vec2, color: &Color) {
+    pub fn draw_triangle(&mut self, a: Vec2, b: Vec2, c: Vec2, color: Color) {
         // Optional: skip degenerate (collinear/tiny) triangles
         // This calculates the cross product which gives twice the area of the triangle
         // So if twice the area is near zero, the points are collinear
@@ -51,7 +51,7 @@ impl<'a> Renderer<'a> {
     ///     Vec2::new(100.0, 100.0),
     ///     Vec2::new(50.0, 200.0),
     ///     Vec2::new(150.0, 200.0),
-    ///     &Color::RED,
+    ///     Color::RED,
     /// );
     /// ```
     ///
@@ -66,10 +66,10 @@ impl<'a> Renderer<'a> {
     ///     Vec2::new(10.0, 10.0),
     ///     Vec2::new(20.0, 10.0),
     ///     Vec2::new(30.0, 10.0),
-    ///     &Color::RED,
+    ///     Color::RED,
     /// ); // skipped (collinear)
     /// ```
-    pub fn fill_triangle(&mut self, a: Vec2, b: Vec2, c: Vec2, color: &Color) {
+    pub fn fill_triangle(&mut self, a: Vec2, b: Vec2, c: Vec2, color: Color) {
         let mut vertices = [a, b, c];
         vertices.sort_by(|a, b| a.y.partial_cmp(&b.y).unwrap());
 
@@ -107,7 +107,7 @@ impl<'a> Renderer<'a> {
     }
 
     #[allow(non_snake_case)]
-    pub fn fill_flat_top(&mut self, A: Vec2, B: Vec2, C: Vec2, color: &Color) {
+    pub fn fill_flat_top(&mut self, A: Vec2, B: Vec2, C: Vec2, color: Color) {
         let eps = 1e-6;
         if (C.y - A.y).abs() < eps || (C.y - B.y).abs() < eps {
             return; // Degenerate flat top
@@ -131,7 +131,7 @@ impl<'a> Renderer<'a> {
     }
 
     #[allow(non_snake_case)]
-    fn fill_flat_bottom(&mut self, A: Vec2, B: Vec2, C: Vec2, color: &Color) {
+    fn fill_flat_bottom(&mut self, A: Vec2, B: Vec2, C: Vec2, color: Color) {
         let eps = 1e-6; // small tolerance
         if (B.y - A.y).abs() < eps || (C.y - A.y).abs() < eps {
             return; // basically zero height

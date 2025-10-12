@@ -3,7 +3,7 @@ use crate::renderer::{Color, Renderer};
 impl<'a> Renderer<'a> {
     // useful when you have two opposite corners of the rectangle
     // e.g when drawing a selection box
-    pub fn draw_rect_pts(&mut self, top_left: (i32, i32), top_right: (i32, i32), color: &Color) {
+    pub fn draw_rect_pts(&mut self, top_left: (i32, i32), top_right: (i32, i32), color: Color) {
         let (x0, y0) = top_left;
         let (x, y) = top_right;
         let (w, h) = (x - x0 + 1, y - y0 + 1);
@@ -12,7 +12,7 @@ impl<'a> Renderer<'a> {
     }
 
     // normal rectangle drawing function using top-left corner and size
-    pub fn draw_rect(&mut self, top_left: (i32, i32), size: (usize, usize), color: &Color) {
+    pub fn draw_rect(&mut self, top_left: (i32, i32), size: (usize, usize), color: Color) {
         let (w, h) = (size.0 as i32, size.1 as i32);
         if w <= 0 || h <= 0 {
             return;
@@ -40,7 +40,7 @@ impl<'a> Renderer<'a> {
         self.draw_line((x, y0 + 1), (x, y - 1), color); // right line without corners
     }
 
-    pub fn fill_rect(&mut self, top_left: (i32, i32), size: (usize, usize), color: &Color) {
+    pub fn fill_rect(&mut self, top_left: (i32, i32), size: (usize, usize), color: Color) {
         let (w, h) = (size.0 as i32, size.1 as i32);
         let (x0, y0) = top_left;
         let (x, y) = (x0 + w - 1, y0 + h - 1);
@@ -63,12 +63,12 @@ mod tests {
 
     fn collect_rect<F>(top_left: (i32, i32), size: (usize, usize), draw_fn: F) -> Vec<(i32, i32)>
     where
-        F: FnOnce(&mut Renderer, (i32, i32), (usize, usize), &Color),
+        F: FnOnce(&mut Renderer, (i32, i32), (usize, usize), Color),
     {
         let mut fb = crate::framebuffer::FrameBuffer::new(16, 16);
         {
             let mut renderer = Renderer::new(&mut fb);
-            draw_fn(&mut renderer, top_left, size, &Color::WHITE);
+            draw_fn(&mut renderer, top_left, size, Color::WHITE);
         }
 
         let mut points = Vec::new();
@@ -86,7 +86,7 @@ mod tests {
         let mut fb = crate::framebuffer::FrameBuffer::new(16, 16);
         {
             let mut renderer = Renderer::new(&mut fb);
-            renderer.draw_rect_pts(top_left, bottom_right, &Color::WHITE);
+            renderer.draw_rect_pts(top_left, bottom_right, Color::WHITE);
         }
 
         let mut points = Vec::new();

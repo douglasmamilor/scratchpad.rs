@@ -5,7 +5,7 @@ impl<'a> Renderer<'a> {
     /// Draws the outline of a circle using the midpoint algorithm.
     ///
     /// `ctr` (the centre) is specified in screen space (integer pixels). `r` the radius must be non-negative.
-    pub fn draw_circle(&mut self, ctr: (i32, i32), r: i32, color: &Color) {
+    pub fn draw_circle(&mut self, ctr: (i32, i32), r: i32, color: Color) {
         if r < 0 {
             return;
         }
@@ -49,7 +49,7 @@ impl<'a> Renderer<'a> {
     }
 
     /// Fills a circle using the midpoint algorithm (draws horizontal spans).
-    pub fn fill_circle(&mut self, ctr: (i32, i32), r: i32, color: &Color) {
+    pub fn fill_circle(&mut self, ctr: (i32, i32), r: i32, color: Color) {
         if r < 0 {
             return;
         }
@@ -96,7 +96,7 @@ mod tests {
         let mut fb = FrameBuffer::new(96, 96);
         {
             let mut renderer = Renderer::new(&mut fb);
-            renderer.draw_circle(center, radius, &Color::WHITE);
+            renderer.draw_circle(center, radius, Color::WHITE);
         }
 
         let mut points = HashSet::new();
