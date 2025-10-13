@@ -1,6 +1,6 @@
 use super::Renderer;
 use crate::color::Color;
-use crate::math::vec2::Vec2;
+use crate::math::{Mat3, vec2::Vec2};
 
 #[inline]
 fn ipart(x: f32) -> i32 {
@@ -123,9 +123,12 @@ impl<'a> Renderer<'a> {
         points
     }
 
-    pub fn draw_line_aa(&mut self, start: Vec2, end: Vec2, color: Color) {
-        let start_tuple = (start.x, start.y);
-        let end_tuple = (end.x, end.y);
+    pub fn draw_line_aa(&mut self, start: Vec2, end: Vec2, color: Color, model: Mat3) {
+        let a_s = model.transform_vec2(start); // float, screen space
+        let b_s = model.transform_vec2(end);
+        
+        let start_tuple = (a_s.x, a_s.y);
+        let end_tuple = (b_s.x, b_s.y);
 
         Renderer::visit_line_points_aa(start_tuple, end_tuple, |(x, y, coverage)| {
             let t = coverage.clamp(0.0, 1.0);

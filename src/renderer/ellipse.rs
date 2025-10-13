@@ -1,6 +1,6 @@
 use crate::color::Color;
 use crate::renderer::{Renderer, quantize_point, quantize_hspan, quantize_vspan};
-use crate::math::vec2::Vec2;
+use crate::math::{Mat3, vec2::Vec2};
 
 impl<'a> Renderer<'a> {
     /// Draw outline for axis-aligned ellipse via midpoint (Bresenham-style) algorithm.
@@ -10,7 +10,7 @@ impl<'a> Renderer<'a> {
     ///
     /// # Examples
     /// ```
-    /// use scratchpad_rs::math::Vec2;
+    /// use scratchpad_rs::math::{Vec2, Mat3};
     /// use scratchpad_rs::color::Color;
     /// use scratchpad_rs::framebuffer::FrameBuffer;
     /// use scratchpad_rs::renderer::Renderer;
@@ -19,30 +19,32 @@ impl<'a> Renderer<'a> {
     /// let mut renderer = Renderer::new(&mut frame_buffer);
     /// 
     /// // Draw ellipse at (100.5, 50.0) with radii 30.0 and 20.0
-    /// renderer.draw_ellipse(Vec2::new(100.5, 50.0), 30.0, 20.0, Color::RED);
+    /// renderer.draw_ellipse(Vec2::new(100.5, 50.0), 30.0, 20.0, Color::RED, Mat3::IDENTITY);
     /// ```
-    pub fn draw_ellipse(&mut self, center: Vec2, rx: f32, ry: f32, color: Color) {
+    pub fn draw_ellipse(&mut self, center: Vec2, rx: f32, ry: f32, color: Color, model: Mat3) {
         if rx < 0.0 && ry < 0.0 {
             return;
         }
 
+        let center_s = model.transform_vec2(center); // float, screen space
+
         // Degenerate case: single point
         if rx == 0.0 && ry == 0.0 {
-            let (ix, iy) = quantize_point(center);
+            let (ix, iy) = quantize_point(center_s);
             self.set_pixel((ix, iy), color);
             return;
         }
 
         // Degenerate case: horizontal line
         if ry == 0.0 {
-            let (iy, x0i, x1i) = quantize_hspan(center.y, center.x - rx, center.x + rx);
+            let (iy, x0i, x1i) = quantize_hspan(center_s.y, center_s.x - rx, center_s.x + rx);
             self.hspan(iy, x0i, x1i, color);
             return;
         }
 
         // Degenerate case: vertical line
         if rx == 0.0 {
-            let (ix, y0i, y1i) = quantize_vspan(center.x, center.y - ry, center.y + ry);
+            let (ix, y0i, y1i) = quantize_vspan(center_s.x, center_s.y - ry, center_s.y + ry);
             self.vspan(ix, y0i, y1i, color);
             return;
         }
@@ -78,7 +80,7 @@ impl<'a> Renderer<'a> {
         // Region 1: |dy/dx| <= 1  (px < py) (advancing x)
         // ----------------
         while px < py {
-            plot4(center.x, center.y, x, y);
+            plot4(center_s.x, center_s.y, x, y);
 
             x += 1.0;
             px += two_ry2;
@@ -104,7 +106,7 @@ impl<'a> Renderer<'a> {
         // Region 2: |dy/dx| > 1  (descending y)
         // ----------------
         while y >= 0.0 {
-            plot4(center.x, center.y, x, y);
+            plot4(center_s.x, center_s.y, x, y);
 
             y -= 1.0;
             py -= two_rx2;
@@ -128,7 +130,7 @@ impl<'a> Renderer<'a> {
     ///
     /// # Examples
     /// ```
-    /// use scratchpad_rs::math::Vec2;
+    /// use scratchpad_rs::math::{Vec2, Mat3};
     /// use scratchpad_rs::color::Color;
     /// use scratchpad_rs::framebuffer::FrameBuffer;
     /// use scratchpad_rs::renderer::Renderer;
@@ -137,28 +139,30 @@ impl<'a> Renderer<'a> {
     /// let mut renderer = Renderer::new(&mut frame_buffer);
     /// 
     /// // Fill ellipse at (100.5, 50.0) with radii 30.0 and 20.0
-    /// renderer.fill_ellipse(Vec2::new(100.5, 50.0), 30.0, 20.0, Color::BLUE);
+    /// renderer.fill_ellipse(Vec2::new(100.5, 50.0), 30.0, 20.0, Color::BLUE, Mat3::IDENTITY);
     /// ```
-    pub fn fill_ellipse(&mut self, center: Vec2, rx: f32, ry: f32, color: Color) {
+    pub fn fill_ellipse(&mut self, center: Vec2, rx: f32, ry: f32, color: Color, model: Mat3) {
         if rx < 0.0 || ry < 0.0 {
             return;
         }
 
+        let center_s = model.transform_vec2(center); // float, screen space
+
         // Degenerates
         if rx == 0.0 && ry == 0.0 {
-            let (ix, iy) = quantize_point(center);
+            let (ix, iy) = quantize_point(center_s);
             self.set_pixel((ix, iy), color);
             return;
         }
         if ry == 0.0 {
             // single horizontal span on y = cy
-            let (iy, x0i, x1i) = quantize_hspan(center.y, center.x - rx, center.x + rx);
+            let (iy, x0i, x1i) = quantize_hspan(center_s.y, center_s.x - rx, center_s.x + rx);
             self.hspan(iy, x0i, x1i, color);
             return;
         }
         if rx == 0.0 {
             // vertical line on x = cx
-            let (ix, y0i, y1i) = quantize_vspan(center.x, center.y - ry, center.y + ry);
+            let (ix, y0i, y1i) = quantize_vspan(center_s.x, center_s.y - ry, center_s.y + ry);
             self.vspan(ix, y0i, y1i, color);
             return;
         }
@@ -197,7 +201,7 @@ impl<'a> Renderer<'a> {
         // Region 1: |dy/dx| <= 1 (advance x)
         // -------------
         while px < py {
-            draw_span_pair(center.x, center.y, x, y, self);
+            draw_span_pair(center_s.x, center_s.y, x, y, self);
 
             x += 1.0;
             px += two_ry2;
@@ -223,7 +227,7 @@ impl<'a> Renderer<'a> {
         // Region 2: |dy/dx| > 1 (advance y)
         // -------------
         while y >= 0.0 {
-            draw_span_pair(center.x, center.y, x, y, self);
+            draw_span_pair(center_s.x, center_s.y, x, y, self);
 
             y -= 1.0;
             py -= two_rx2;
@@ -251,7 +255,7 @@ mod tests {
         let mut fb = FrameBuffer::new(96, 96);
         {
             let mut renderer = Renderer::new(&mut fb);
-            renderer.draw_ellipse(center, rx, ry, Color::WHITE);
+            renderer.draw_ellipse(center, rx, ry, Color::WHITE, Mat3::IDENTITY);
         }
 
         let mut points = HashSet::new();

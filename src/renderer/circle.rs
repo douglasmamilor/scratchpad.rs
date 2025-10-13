@@ -1,6 +1,6 @@
 use crate::color::Color;
 use crate::renderer::{Renderer, quantize_point, quantize_hspan};
-use crate::math::vec2::Vec2;
+use crate::math::{Mat3, vec2::Vec2};
 
 impl<'a> Renderer<'a> {
     /// Draws the outline of a circle using the midpoint algorithm.
@@ -10,7 +10,7 @@ impl<'a> Renderer<'a> {
     ///
     /// # Examples
     /// ```
-    /// use scratchpad_rs::math::Vec2;
+    /// use scratchpad_rs::math::{Vec2, Mat3};
     /// use scratchpad_rs::color::Color;
     /// use scratchpad_rs::framebuffer::FrameBuffer;
     /// use scratchpad_rs::renderer::Renderer;
@@ -19,15 +19,17 @@ impl<'a> Renderer<'a> {
     /// let mut renderer = Renderer::new(&mut frame_buffer);
     /// 
     /// // Draw circle at (100.5, 50.0) with radius 25.0
-    /// renderer.draw_circle(Vec2::new(100.5, 50.0), 25.0, Color::RED);
+    /// renderer.draw_circle(Vec2::new(100.5, 50.0), 25.0, Color::RED, Mat3::IDENTITY);
     /// ```
-    pub fn draw_circle(&mut self, center: Vec2, radius: f32, color: Color) {
+    pub fn draw_circle(&mut self, center: Vec2, radius: f32, color: Color, model: Mat3) {
         if radius < 0.0 {
             return;
         }
 
+        let center_s = model.transform_vec2(center); // float, screen space
+        
         if radius == 0.0 {
-            let (ix, iy) = quantize_point(center);
+            let (ix, iy) = quantize_point(center_s);
             self.set_pixel((ix, iy), color);
             return;
         }
@@ -58,7 +60,7 @@ impl<'a> Renderer<'a> {
         };
 
         while x >= y {
-            plot(center.x, center.y, x, y);
+            plot(center_s.x, center_s.y, x, y);
 
             y += 1.0;
             if D < 0.0 {
@@ -79,7 +81,7 @@ impl<'a> Renderer<'a> {
     ///
     /// # Examples
     /// ```
-    /// use scratchpad_rs::math::Vec2;
+    /// use scratchpad_rs::math::{Vec2, Mat3};
     /// use scratchpad_rs::color::Color;
     /// use scratchpad_rs::framebuffer::FrameBuffer;
     /// use scratchpad_rs::renderer::Renderer;
@@ -88,15 +90,17 @@ impl<'a> Renderer<'a> {
     /// let mut renderer = Renderer::new(&mut frame_buffer);
     /// 
     /// // Fill circle at (100.5, 50.0) with radius 25.0
-    /// renderer.fill_circle(Vec2::new(100.5, 50.0), 25.0, Color::BLUE);
+    /// renderer.fill_circle(Vec2::new(100.5, 50.0), 25.0, Color::BLUE, Mat3::IDENTITY);
     /// ```
-    pub fn fill_circle(&mut self, center: Vec2, radius: f32, color: Color) {
+    pub fn fill_circle(&mut self, center: Vec2, radius: f32, color: Color, model: Mat3) {
         if radius < 0.0 {
             return;
         }
 
+        let center_s = model.transform_vec2(center); // float, screen space
+        
         if radius == 0.0 {
-            let (ix, iy) = quantize_point(center);
+            let (ix, iy) = quantize_point(center_s);
             self.set_pixel((ix, iy), color);
             return;
         }
@@ -108,16 +112,16 @@ impl<'a> Renderer<'a> {
 
         while x >= y {
             // 4 symmetric spans (covering all 8 octants)
-            let (iy1, x0i1, x1i1) = quantize_hspan(center.y + y, center.x - x, center.x + x);
+            let (iy1, x0i1, x1i1) = quantize_hspan(center_s.y + y, center_s.x - x, center_s.x + x);
             self.hspan(iy1, x0i1, x1i1, color);
             
-            let (iy2, x0i2, x1i2) = quantize_hspan(center.y - y, center.x - x, center.x + x);
+            let (iy2, x0i2, x1i2) = quantize_hspan(center_s.y - y, center_s.x - x, center_s.x + x);
             self.hspan(iy2, x0i2, x1i2, color);
             
-            let (iy3, x0i3, x1i3) = quantize_hspan(center.y + x, center.x - y, center.x + y);
+            let (iy3, x0i3, x1i3) = quantize_hspan(center_s.y + x, center_s.x - y, center_s.x + y);
             self.hspan(iy3, x0i3, x1i3, color);
             
-            let (iy4, x0i4, x1i4) = quantize_hspan(center.y - x, center.x - y, center.x + y);
+            let (iy4, x0i4, x1i4) = quantize_hspan(center_s.y - x, center_s.x - y, center_s.x + y);
             self.hspan(iy4, x0i4, x1i4, color);
 
             // Midpoint step: N vs NW
@@ -144,7 +148,7 @@ mod tests {
         let mut fb = FrameBuffer::new(96, 96);
         {
             let mut renderer = Renderer::new(&mut fb);
-            renderer.draw_circle(center, radius, Color::WHITE);
+            renderer.draw_circle(center, radius, Color::WHITE, Mat3::IDENTITY);
         }
 
         let mut points = HashSet::new();

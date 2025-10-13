@@ -1,6 +1,6 @@
 use super::Renderer;
 use crate::color::Color;
-use crate::math::vec2::Vec2;
+use crate::math::{Mat3, vec2::Vec2};
 
 impl<'a> Renderer<'a> {
     /// Draw a triangle outline using three vertices.
@@ -9,7 +9,7 @@ impl<'a> Renderer<'a> {
     ///
     /// # Example
     /// ```
-    /// # use scratchpad_rs::{color::Color, math::vec2::Vec2};
+    /// # use scratchpad_rs::{color::Color, math::{vec2::Vec2, Mat3}};
     /// # use scratchpad_rs::framebuffer::FrameBuffer;
     /// # use scratchpad_rs::renderer::Renderer;
     /// # let mut fb = FrameBuffer::new(64, 64);
@@ -19,10 +19,11 @@ impl<'a> Renderer<'a> {
     ///     Vec2::new(50.0, 200.0),
     ///     Vec2::new(150.0, 200.0),
     ///     Color::RED,
+    ///     Mat3::IDENTITY,
     /// );
     ///
     #[inline]
-    pub fn draw_triangle(&mut self, a: Vec2, b: Vec2, c: Vec2, color: Color) {
+    pub fn draw_triangle(&mut self, a: Vec2, b: Vec2, c: Vec2, color: Color, model: Mat3) {
         // Optional: skip degenerate (collinear/tiny) triangles
         // This calculates the cross product which gives twice the area of the triangle
         // So if twice the area is near zero, the points are collinear
@@ -31,9 +32,9 @@ impl<'a> Renderer<'a> {
             return;
         }
 
-        self.draw_line_aa(a, b, color);
-        self.draw_line_aa(b, c, color);
-        self.draw_line_aa(c, a, color);
+        self.draw_line_aa(a, b, color, model);
+        self.draw_line_aa(b, c, color, model);
+        self.draw_line_aa(c, a, color, model);
     }
 
     /// Fill a triangle using a scanline algorithm.
@@ -42,7 +43,7 @@ impl<'a> Renderer<'a> {
     ///
     /// # Example
     /// ```
-    /// # use scratchpad_rs::{color::Color, math::vec2::Vec2};
+    /// # use scratchpad_rs::{color::Color, math::{vec2::Vec2, Mat3}};
     /// # use scratchpad_rs::framebuffer::FrameBuffer;
     /// # use scratchpad_rs::renderer::Renderer;
     /// # let mut fb = FrameBuffer::new(64, 64);
@@ -52,12 +53,13 @@ impl<'a> Renderer<'a> {
     ///     Vec2::new(50.0, 200.0),
     ///     Vec2::new(150.0, 200.0),
     ///     Color::RED,
+    ///     Mat3::IDENTITY,
     /// );
     /// ```
     ///
     /// # Degenerate
     /// ```
-    /// # use scratchpad_rs::{color::Color, math::vec2::Vec2};
+    /// # use scratchpad_rs::{color::Color, math::{vec2::Vec2, Mat3}};
     /// # use scratchpad_rs::framebuffer::FrameBuffer;
     /// # use scratchpad_rs::renderer::Renderer;
     /// # let mut fb = FrameBuffer::new(64, 64);
@@ -67,10 +69,15 @@ impl<'a> Renderer<'a> {
     ///     Vec2::new(20.0, 10.0),
     ///     Vec2::new(30.0, 10.0),
     ///     Color::RED,
+    ///     Mat3::IDENTITY,
     /// ); // skipped (collinear)
     /// ```
-    pub fn fill_triangle(&mut self, a: Vec2, b: Vec2, c: Vec2, color: Color) {
-        let mut vertices = [a, b, c];
+    pub fn fill_triangle(&mut self, a: Vec2, b: Vec2, c: Vec2, color: Color, model: Mat3) {
+        let a_s = model.transform_vec2(a); // float, screen space
+        let b_s = model.transform_vec2(b);
+        let c_s = model.transform_vec2(c);
+        
+        let mut vertices = [a_s, b_s, c_s];
         vertices.sort_by(|a, b| a.y.partial_cmp(&b.y).unwrap());
 
         #[allow(non_snake_case)]
@@ -124,7 +131,7 @@ impl<'a> Renderer<'a> {
 
         for y in y_start..y_end {
             let (xa, xb) = if x1 <= x2 { (x1, x2) } else { (x2, x1) };
-            self.draw_line_aa(Vec2::new(xa, y as f32), Vec2::new(xb, y as f32), color);
+            self.draw_line_aa(Vec2::new(xa, y as f32), Vec2::new(xb, y as f32), color, Mat3::IDENTITY);
             x1 += inv_slope_1;
             x2 += inv_slope_2;
         }
@@ -148,7 +155,7 @@ impl<'a> Renderer<'a> {
 
         for y in y_start..y_end {
             let (xa, xb) = if x1 <= x2 { (x1, x2) } else { (x2, x1) };
-            self.draw_line_aa(Vec2::new(xa, y as f32), Vec2::new(xb, y as f32), color);
+            self.draw_line_aa(Vec2::new(xa, y as f32), Vec2::new(xb, y as f32), color, Mat3::IDENTITY);
             x1 += inv_slope_1;
             x2 += inv_slope_2;
         }

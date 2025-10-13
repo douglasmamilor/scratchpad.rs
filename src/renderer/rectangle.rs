@@ -1,5 +1,5 @@
 use crate::color::Color;
-use crate::math::{IVec2, Vec2};
+use crate::math::{IVec2, Mat3, Vec2};
 use crate::renderer::{Renderer, quantize_point, snap_axis};
 
 impl<'a> Renderer<'a> {
@@ -11,7 +11,7 @@ impl<'a> Renderer<'a> {
     ///
     /// # Examples
     /// ```
-    /// use scratchpad_rs::math::Vec2;
+    /// use scratchpad_rs::math::{Vec2, Mat3};
     /// use scratchpad_rs::color::Color;
     /// use scratchpad_rs::framebuffer::FrameBuffer;
     /// use scratchpad_rs::renderer::Renderer;
@@ -20,16 +20,19 @@ impl<'a> Renderer<'a> {
     /// let mut renderer = Renderer::new(&mut frame_buffer);
     ///
     /// // Draw rectangle from (10.0, 10.0) to (50.0, 30.0)
-    /// renderer.draw_rect(Vec2::new(10.0, 10.0), Vec2::new(50.0, 30.0), Color::RED);
+    /// renderer.draw_rect(Vec2::new(10.0, 10.0), Vec2::new(50.0, 30.0), Color::RED, Mat3::IDENTITY);
     ///
     /// // Same rectangle, corners swapped
-    /// renderer.draw_rect(Vec2::new(50.0, 30.0), Vec2::new(10.0, 10.0), Color::RED);
+    /// renderer.draw_rect(Vec2::new(50.0, 30.0), Vec2::new(10.0, 10.0), Color::RED, Mat3::IDENTITY);
     /// ```
-    pub fn draw_rect(&mut self, p0: Vec2, p1: Vec2, color: Color) {
-        let x0 = p0.x.min(p1.x);
-        let x1 = p0.x.max(p1.x);
-        let y0 = p0.y.min(p1.y);
-        let y1 = p0.y.max(p1.y);
+    pub fn draw_rect(&mut self, p0: Vec2, p1: Vec2, color: Color, model: Mat3) {
+        let p0_s = model.transform_vec2(p0); // float, screen space
+        let p1_s = model.transform_vec2(p1);
+        
+        let x0 = p0_s.x.min(p1_s.x);
+        let x1 = p0_s.x.max(p1_s.x);
+        let y0 = p0_s.y.min(p1_s.y);
+        let y1 = p0_s.y.max(p1_s.y);
         let w = x1 - x0;
         let h = y1 - y0;
 
@@ -42,21 +45,21 @@ impl<'a> Renderer<'a> {
 
         if w <= 0.0 {
             // Single vertical line
-            self.draw_line_aa(Vec2::new(x0, y0), Vec2::new(x0, y1), color);
+            self.draw_line_aa(Vec2::new(x0, y0), Vec2::new(x0, y1), color, Mat3::IDENTITY);
             return;
         }
 
         if h <= 0.0 {
             // Single horizontal line
-            self.draw_line_aa(Vec2::new(x0, y0), Vec2::new(x1, y0), color);
+            self.draw_line_aa(Vec2::new(x0, y0), Vec2::new(x1, y0), color, Mat3::IDENTITY);
             return;
         }
 
         // Draw all four edges using anti-aliased lines
-        self.draw_line_aa(Vec2::new(x0, y0), Vec2::new(x1, y0), color); // top edge
-        self.draw_line_aa(Vec2::new(x0, y1), Vec2::new(x1, y1), color); // bottom edge
-        self.draw_line_aa(Vec2::new(x0, y0), Vec2::new(x0, y1), color); // left edge
-        self.draw_line_aa(Vec2::new(x1, y0), Vec2::new(x1, y1), color); // right edge
+        self.draw_line_aa(Vec2::new(x0, y0), Vec2::new(x1, y0), color, Mat3::IDENTITY); // top edge
+        self.draw_line_aa(Vec2::new(x0, y1), Vec2::new(x1, y1), color, Mat3::IDENTITY); // bottom edge
+        self.draw_line_aa(Vec2::new(x0, y0), Vec2::new(x0, y1), color, Mat3::IDENTITY); // left edge
+        self.draw_line_aa(Vec2::new(x1, y0), Vec2::new(x1, y1), color, Mat3::IDENTITY); // right edge
     }
 
     /// Fills a rectangle using any two corners.
@@ -66,7 +69,7 @@ impl<'a> Renderer<'a> {
     ///
     /// # Examples
     /// ```
-    /// use scratchpad_rs::math::Vec2;
+    /// use scratchpad_rs::math::{Vec2, Mat3};
     /// use scratchpad_rs::color::Color;
     /// use scratchpad_rs::framebuffer::FrameBuffer;
     /// use scratchpad_rs::renderer::Renderer;
@@ -75,13 +78,16 @@ impl<'a> Renderer<'a> {
     /// let mut renderer = Renderer::new(&mut frame_buffer);
     ///
     /// // Fill rectangle from (10.0, 10.0) to (50.0, 30.0)
-    /// renderer.fill_rect(Vec2::new(10.0, 10.0), Vec2::new(50.0, 30.0), Color::BLUE);
+    /// renderer.fill_rect(Vec2::new(10.0, 10.0), Vec2::new(50.0, 30.0), Color::BLUE, Mat3::IDENTITY);
     /// ```
-    pub fn fill_rect(&mut self, p0: Vec2, p1: Vec2, color: Color) {
-        let x0 = p0.x.min(p1.x);
-        let x1 = p0.x.max(p1.x);
-        let y0 = p0.y.min(p1.y);
-        let y1 = p0.y.max(p1.y);
+    pub fn fill_rect(&mut self, p0: Vec2, p1: Vec2, color: Color, model: Mat3) {
+        let p0_s = model.transform_vec2(p0); // float, screen space
+        let p1_s = model.transform_vec2(p1);
+        
+        let x0 = p0_s.x.min(p1_s.x);
+        let x1 = p0_s.x.max(p1_s.x);
+        let y0 = p0_s.y.min(p1_s.y);
+        let y1 = p0_s.y.max(p1_s.y);
 
         if x1 <= x0 || y1 <= y0 {
             return;
@@ -127,10 +133,10 @@ impl<'a> Renderer<'a> {
         let y0s = snap_axis(y0 as f32, 1.0) as i32;
         let y1s = snap_axis(y1 as f32, 1.0) as i32;
 
-        self.draw_line_pixel(IVec2::new(x0s, y0s), IVec2::new(x1s, y0s), color);
-        self.draw_line_pixel(IVec2::new(x0s, y1s), IVec2::new(x1s, y1s), color);
-        self.draw_line_pixel(IVec2::new(x0s, y0s), IVec2::new(x0s, y1s), color);
-        self.draw_line_pixel(IVec2::new(x1s, y0s), IVec2::new(x1s, y1s), color);
+        self.draw_line_pixel(IVec2::new(x0s, y0s), IVec2::new(x1s, y0s), color, Mat3::IDENTITY);
+        self.draw_line_pixel(IVec2::new(x0s, y1s), IVec2::new(x1s, y1s), color, Mat3::IDENTITY);
+        self.draw_line_pixel(IVec2::new(x0s, y0s), IVec2::new(x0s, y1s), color, Mat3::IDENTITY);
+        self.draw_line_pixel(IVec2::new(x1s, y0s), IVec2::new(x1s, y1s), color, Mat3::IDENTITY);
     }
 
     /// Legacy function for backward compatibility.
@@ -146,6 +152,7 @@ impl<'a> Renderer<'a> {
             Vec2::new(x0 as f32, y0 as f32),
             Vec2::new((x0 + w - 1) as f32, (y0 + h - 1) as f32),
             color,
+            Mat3::IDENTITY,
         );
     }
 }
@@ -160,7 +167,7 @@ mod tests {
         let mut fb = FrameBuffer::new(96, 96);
         {
             let mut renderer = Renderer::new(&mut fb);
-            renderer.draw_rect(p0, p1, Color::WHITE);
+            renderer.draw_rect(p0, p1, Color::WHITE, Mat3::IDENTITY);
         }
 
         let mut points = HashSet::new();
@@ -178,7 +185,7 @@ mod tests {
         let mut fb = FrameBuffer::new(96, 96);
         {
             let mut renderer = Renderer::new(&mut fb);
-            renderer.fill_rect(p0, p1, Color::WHITE);
+            renderer.fill_rect(p0, p1, Color::WHITE, Mat3::IDENTITY);
         }
 
         let mut points = HashSet::new();

@@ -1,6 +1,6 @@
 use super::Renderer;
 use crate::color::Color;
-use crate::math::{IVec2, Vec2};
+use crate::math::Mat3;
 
 impl<'a> Renderer<'a> {
     pub fn flood_fill<F>(&mut self, px: (i32, i32), new_color: Color, matches: F, conn_8: bool)
@@ -130,7 +130,11 @@ mod tests {
     fn flood_fill_simple_rectangle() {
         let pixels = collect_pixels(10, 10, |renderer| {
             // Draw a rectangle outline
-            renderer.draw_rect_pixel(IVec2::new(2, 2), IVec2::new(6, 6), Color::WHITE);
+            renderer.draw_rect_pixel(
+                crate::math::IVec2::new(2, 2),
+                crate::math::IVec2::new(6, 6),
+                Color::WHITE,
+            );
             // Fill the interior
             renderer.flood_fill(
                 (5, 5),
@@ -200,8 +204,16 @@ mod tests {
     fn flood_fill_boundary_detection() {
         let pixels = collect_pixels(10, 10, |renderer| {
             // Draw two separate regions with different boundary colors
-            renderer.draw_rect_pixel(IVec2::new(1, 1), IVec2::new(3, 3), Color::RED);
-            renderer.draw_rect_pixel(IVec2::new(5, 5), IVec2::new(3, 3), Color::BLUE);
+            renderer.draw_rect_pixel(
+                crate::math::IVec2::new(1, 1),
+                crate::math::IVec2::new(3, 3),
+                Color::RED,
+            );
+            renderer.draw_rect_pixel(
+                crate::math::IVec2::new(5, 5),
+                crate::math::IVec2::new(3, 3),
+                Color::BLUE,
+            );
 
             // Fill only the red-bounded region
             renderer.flood_fill(
@@ -221,7 +233,12 @@ mod tests {
     fn flood_fill_already_filled() {
         let pixels = collect_pixels(10, 10, |renderer| {
             // Fill an area first
-            renderer.fill_rect(Vec2::new(2.0, 2.0), Vec2::new(6.0, 6.0), Color::RED);
+            renderer.fill_rect(
+                crate::math::Vec2::new(2.0, 2.0),
+                crate::math::Vec2::new(6.0, 6.0),
+                Color::RED,
+                Mat3::IDENTITY,
+            );
 
             // Try to flood fill the same area with same color
             renderer.flood_fill(
@@ -276,7 +293,12 @@ mod tests {
     fn flood_fill_line() {
         let pixels = collect_pixels(10, 10, |renderer| {
             // Draw a horizontal line
-            renderer.draw_line_pixel(IVec2::new(2, 5), IVec2::new(7, 5), Color::WHITE);
+            renderer.draw_line_pixel(
+                crate::math::IVec2::new(2, 5),
+                crate::math::IVec2::new(7, 5),
+                Color::WHITE,
+                Mat3::IDENTITY,
+            );
 
             // Fill it
             renderer.flood_fill(
@@ -296,10 +318,26 @@ mod tests {
     fn flood_fill_complex_shape() {
         let pixels = collect_pixels(15, 15, |renderer| {
             // Draw a complex L-shaped boundary
-            renderer.draw_rect_pixel(IVec2::new(2, 2), IVec2::new(6, 2), Color::WHITE); // Top horizontal
-            renderer.draw_rect_pixel(IVec2::new(2, 2), IVec2::new(2, 6), Color::WHITE); // Left vertical
-            renderer.draw_rect_pixel(IVec2::new(2, 6), IVec2::new(4, 2), Color::WHITE); // Bottom horizontal (shorter)
-            renderer.draw_rect_pixel(IVec2::new(4, 4), IVec2::new(2, 4), Color::WHITE); // Right vertical (shorter)
+            renderer.draw_rect_pixel(
+                crate::math::IVec2::new(2, 2),
+                crate::math::IVec2::new(6, 2),
+                Color::WHITE,
+            ); // Top horizontal
+            renderer.draw_rect_pixel(
+                crate::math::IVec2::new(2, 2),
+                crate::math::IVec2::new(2, 6),
+                Color::WHITE,
+            ); // Left vertical
+            renderer.draw_rect_pixel(
+                crate::math::IVec2::new(2, 6),
+                crate::math::IVec2::new(4, 2),
+                Color::WHITE,
+            ); // Bottom horizontal (shorter)
+            renderer.draw_rect_pixel(
+                crate::math::IVec2::new(4, 4),
+                crate::math::IVec2::new(2, 4),
+                Color::WHITE,
+            ); // Right vertical (shorter)
 
             // Fill the interior
             renderer.flood_fill(
@@ -345,7 +383,11 @@ mod tests {
     fn flood_fill_performance_large_area() {
         let pixels = collect_pixels(50, 50, |renderer| {
             // Draw a large rectangle outline
-            renderer.draw_rect_pixel(IVec2::new(5, 5), IVec2::new(40, 40), Color::WHITE);
+            renderer.draw_rect_pixel(
+                crate::math::IVec2::new(5, 5),
+                crate::math::IVec2::new(40, 40),
+                Color::WHITE,
+            );
 
             // Fill the large interior
             renderer.flood_fill(
@@ -365,9 +407,14 @@ mod tests {
     fn flood_fill_circle_outline() {
         let pixels = collect_pixels(20, 20, |renderer| {
             // Draw a circle outline
-            renderer.draw_circle(Vec2::new(10.0, 10.0), 5.0, Color::WHITE);
+            renderer.draw_circle(crate::math::Vec2::new(10.0, 10.0), 5.0, Color::WHITE, Mat3::IDENTITY);
             // Try to fill the interior - but there's no interior with just an outline!
-            renderer.flood_fill((10, 10), Color::RED, |target, _new| target == Color::WHITE, false);
+            renderer.flood_fill(
+                (10, 10),
+                Color::RED,
+                |target, _new| target == Color::WHITE,
+                false,
+            );
         });
 
         // Should only have the outline pixels (no interior to fill)
@@ -380,11 +427,21 @@ mod tests {
     fn flood_fill_filled_circle() {
         let pixels = collect_pixels(20, 20, |renderer| {
             // Draw a filled circle first
-            renderer.fill_rect(Vec2::new(5.0, 5.0), Vec2::new(10.0, 10.0), Color::WHITE);
+            renderer.fill_rect(
+                crate::math::Vec2::new(5.0, 5.0),
+                crate::math::Vec2::new(10.0, 10.0),
+                Color::WHITE,
+                Mat3::IDENTITY,
+            );
             // Then draw a circle outline on top
-            renderer.draw_circle(Vec2::new(10.0, 10.0), 4.0, Color::BLACK);
+            renderer.draw_circle(crate::math::Vec2::new(10.0, 10.0), 4.0, Color::BLACK, Mat3::IDENTITY);
             // Now fill the interior (between the outline and the filled area)
-            renderer.flood_fill((10, 10), Color::RED, |target, _new| target == Color::WHITE, false);
+            renderer.flood_fill(
+                (10, 10),
+                Color::RED,
+                |target, _new| target == Color::WHITE,
+                false,
+            );
         });
 
         // Should have filled the interior of the circle

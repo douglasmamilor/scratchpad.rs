@@ -36,12 +36,11 @@ impl<'a, 'r> Canvas<'a, 'r> {
         self.ts.scale(sx, sy);
     }
 
-    // #[inline]
-    // pub fn draw_line(&mut self, a: Vec2, b: Vec2, color: Color) {
-    //     self.r.draw_line(a, b, self.ts.current(), &color);
-    // }
+    #[inline]
+    pub fn draw_line(&mut self, a: Vec2, b: Vec2, color: Color) {
+        self.r.draw_line_aa(a, b, color, self.ts.current());
+    }
 
-    //
     pub fn with(&mut self, m: Mat3, f: impl FnOnce(&mut Self)) {
         self.push(m);
         f(self);
