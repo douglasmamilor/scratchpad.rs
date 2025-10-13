@@ -12,6 +12,14 @@ pub struct Canvas<'a, 'r> {
 
 impl<'a, 'r> Canvas<'a, 'r> {
     #[inline]
+    pub fn new(renderer: &'r mut Renderer<'a>) -> Self {
+        Self {
+            r: renderer,
+            ts: TransformStack::new(),
+        }
+    }
+
+    #[inline]
     pub fn push(&mut self, m: Mat3) {
         self.ts.push(m);
     }

@@ -105,9 +105,7 @@ impl<'a> Renderer<'a> {
         if !emit(x_end, y_end, rfpart(y_endpt) * x_endpt_gap) {
             return;
         }
-        if !emit(x_end, y_end + 1, fpart(y_endpt) * x_endpt_gap) {
-            return;
-        }
+        if !emit(x_end, y_end + 1, fpart(y_endpt) * x_endpt_gap) {}
     }
 
     // draw antialiased line using Wu's line drawing algorithm returning visited points
