@@ -76,7 +76,7 @@ impl<'a> Renderer<'a> {
         let a_s = model.transform_vec2(a); // float, screen space
         let b_s = model.transform_vec2(b);
         let c_s = model.transform_vec2(c);
-        
+
         let mut vertices = [a_s, b_s, c_s];
         vertices.sort_by(|a, b| a.y.partial_cmp(&b.y).unwrap());
 
@@ -131,7 +131,12 @@ impl<'a> Renderer<'a> {
 
         for y in y_start..y_end {
             let (xa, xb) = if x1 <= x2 { (x1, x2) } else { (x2, x1) };
-            self.draw_line_aa(Vec2::new(xa, y as f32), Vec2::new(xb, y as f32), color, Mat3::IDENTITY);
+            self.draw_line_aa(
+                Vec2::new(xa, y as f32),
+                Vec2::new(xb, y as f32),
+                color,
+                Mat3::IDENTITY,
+            );
             x1 += inv_slope_1;
             x2 += inv_slope_2;
         }
@@ -155,7 +160,12 @@ impl<'a> Renderer<'a> {
 
         for y in y_start..y_end {
             let (xa, xb) = if x1 <= x2 { (x1, x2) } else { (x2, x1) };
-            self.draw_line_aa(Vec2::new(xa, y as f32), Vec2::new(xb, y as f32), color, Mat3::IDENTITY);
+            self.draw_line_aa(
+                Vec2::new(xa, y as f32),
+                Vec2::new(xb, y as f32),
+                color,
+                Mat3::IDENTITY,
+            );
             x1 += inv_slope_1;
             x2 += inv_slope_2;
         }

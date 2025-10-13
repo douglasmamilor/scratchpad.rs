@@ -28,7 +28,7 @@ impl<'a> Renderer<'a> {
     pub fn draw_rect(&mut self, p0: Vec2, p1: Vec2, color: Color, model: Mat3) {
         let p0_s = model.transform_vec2(p0); // float, screen space
         let p1_s = model.transform_vec2(p1);
-        
+
         let x0 = p0_s.x.min(p1_s.x);
         let x1 = p0_s.x.max(p1_s.x);
         let y0 = p0_s.y.min(p1_s.y);
@@ -83,7 +83,7 @@ impl<'a> Renderer<'a> {
     pub fn fill_rect(&mut self, p0: Vec2, p1: Vec2, color: Color, model: Mat3) {
         let p0_s = model.transform_vec2(p0); // float, screen space
         let p1_s = model.transform_vec2(p1);
-        
+
         let x0 = p0_s.x.min(p1_s.x);
         let x1 = p0_s.x.max(p1_s.x);
         let y0 = p0_s.y.min(p1_s.y);
@@ -133,10 +133,30 @@ impl<'a> Renderer<'a> {
         let y0s = snap_axis(y0 as f32, 1.0) as i32;
         let y1s = snap_axis(y1 as f32, 1.0) as i32;
 
-        self.draw_line_pixel(IVec2::new(x0s, y0s), IVec2::new(x1s, y0s), color, Mat3::IDENTITY);
-        self.draw_line_pixel(IVec2::new(x0s, y1s), IVec2::new(x1s, y1s), color, Mat3::IDENTITY);
-        self.draw_line_pixel(IVec2::new(x0s, y0s), IVec2::new(x0s, y1s), color, Mat3::IDENTITY);
-        self.draw_line_pixel(IVec2::new(x1s, y0s), IVec2::new(x1s, y1s), color, Mat3::IDENTITY);
+        self.draw_line_pixel(
+            IVec2::new(x0s, y0s),
+            IVec2::new(x1s, y0s),
+            color,
+            Mat3::IDENTITY,
+        );
+        self.draw_line_pixel(
+            IVec2::new(x0s, y1s),
+            IVec2::new(x1s, y1s),
+            color,
+            Mat3::IDENTITY,
+        );
+        self.draw_line_pixel(
+            IVec2::new(x0s, y0s),
+            IVec2::new(x0s, y1s),
+            color,
+            Mat3::IDENTITY,
+        );
+        self.draw_line_pixel(
+            IVec2::new(x1s, y0s),
+            IVec2::new(x1s, y1s),
+            color,
+            Mat3::IDENTITY,
+        );
     }
 
     /// Legacy function for backward compatibility.

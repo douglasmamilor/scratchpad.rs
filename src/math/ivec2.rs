@@ -198,7 +198,10 @@ impl IVec2 {
     /// ```
     #[inline]
     pub fn perp(self) -> Self {
-        Self { x: -self.y, y: self.x }
+        Self {
+            x: -self.y,
+            y: self.x,
+        }
     }
 
     /// Reflects this vector off a surface with the given normal
@@ -284,7 +287,10 @@ impl Neg for IVec2 {
     type Output = Self;
     #[inline]
     fn neg(self) -> Self {
-        Self { x: -self.x, y: -self.y }
+        Self {
+            x: -self.x,
+            y: -self.y,
+        }
     }
 }
 
@@ -410,7 +416,7 @@ mod tests {
     fn test_arithmetic() {
         let a = IVec2::new(3, 4);
         let b = IVec2::new(1, 2);
-        
+
         assert_eq!(a + b, IVec2::new(4, 6));
         assert_eq!(a - b, IVec2::new(2, 2));
         assert_eq!(a * 2, IVec2::new(6, 8));
@@ -452,7 +458,7 @@ mod tests {
         let mut v = IVec2::new(3, 4);
         assert_eq!(v[0], 3);
         assert_eq!(v[1], 4);
-        
+
         v[0] = 5;
         v[1] = 6;
         assert_eq!(v, IVec2::new(5, 6));
@@ -463,7 +469,7 @@ mod tests {
         let tuple = (3, 4);
         let ivec = IVec2::from(tuple);
         assert_eq!(ivec, IVec2::new(3, 4));
-        
+
         let back: (i32, i32) = ivec.into();
         assert_eq!(back, (3, 4));
     }

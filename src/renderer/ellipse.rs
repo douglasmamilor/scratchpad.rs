@@ -1,10 +1,10 @@
 use crate::color::Color;
-use crate::renderer::{Renderer, quantize_point, quantize_hspan, quantize_vspan};
 use crate::math::{Mat3, vec2::Vec2};
+use crate::renderer::{Renderer, quantize_hspan, quantize_point, quantize_vspan};
 
 impl<'a> Renderer<'a> {
     /// Draw outline for axis-aligned ellipse via midpoint (Bresenham-style) algorithm.
-    /// 
+    ///
     /// `center` is specified as a Vec2 in floating-point coordinates.
     /// `rx` and `ry` are the horizontal and vertical radii, must be non-negative.
     ///
@@ -14,10 +14,10 @@ impl<'a> Renderer<'a> {
     /// use scratchpad_rs::color::Color;
     /// use scratchpad_rs::framebuffer::FrameBuffer;
     /// use scratchpad_rs::renderer::Renderer;
-    /// 
+    ///
     /// let mut frame_buffer = FrameBuffer::new(100, 100);
     /// let mut renderer = Renderer::new(&mut frame_buffer);
-    /// 
+    ///
     /// // Draw ellipse at (100.5, 50.0) with radii 30.0 and 20.0
     /// renderer.draw_ellipse(Vec2::new(100.5, 50.0), 30.0, 20.0, Color::RED, Mat3::IDENTITY);
     /// ```
@@ -69,7 +69,7 @@ impl<'a> Renderer<'a> {
             let (ix2, iy2) = quantize_point(Vec2::new(cx - x, cy + y));
             let (ix3, iy3) = quantize_point(Vec2::new(cx + x, cy - y));
             let (ix4, iy4) = quantize_point(Vec2::new(cx - x, cy - y));
-            
+
             self.set_pixel((ix1, iy1), color);
             self.set_pixel((ix2, iy2), color);
             self.set_pixel((ix3, iy3), color);
@@ -124,7 +124,7 @@ impl<'a> Renderer<'a> {
     }
 
     /// Filled, axis-aligned ellipse via midpoint (Bresenham-style) algorithm.
-    /// 
+    ///
     /// `center` is specified as a Vec2 in floating-point coordinates.
     /// `rx` and `ry` are the horizontal and vertical radii, must be non-negative.
     ///
@@ -134,10 +134,10 @@ impl<'a> Renderer<'a> {
     /// use scratchpad_rs::color::Color;
     /// use scratchpad_rs::framebuffer::FrameBuffer;
     /// use scratchpad_rs::renderer::Renderer;
-    /// 
+    ///
     /// let mut frame_buffer = FrameBuffer::new(100, 100);
     /// let mut renderer = Renderer::new(&mut frame_buffer);
-    /// 
+    ///
     /// // Fill ellipse at (100.5, 50.0) with radii 30.0 and 20.0
     /// renderer.fill_ellipse(Vec2::new(100.5, 50.0), 30.0, 20.0, Color::BLUE, Mat3::IDENTITY);
     /// ```
@@ -334,7 +334,7 @@ mod tests {
 
         // Should still draw a valid ellipse
         assert!(!samples.is_empty());
-        
+
         // Center should be rounded to (11, 16)
         let center_i = (center.x.round() as i32, center.y.round() as i32);
         assert_eq!(center_i, (11, 16));
@@ -349,7 +349,7 @@ mod tests {
 
         // Should draw an ellipse with fractional radii
         assert!(!samples.is_empty());
-        
+
         // Should have points at approximately the right distance
         let center_i = (center.x.round() as i32, center.y.round() as i32);
         let has_radius_points = samples.iter().any(|&(x, y)| {
@@ -359,17 +359,20 @@ mod tests {
             let dist_y = dy.abs() as f32;
             (dist_x >= 5.0 && dist_x <= 6.0) || (dist_y >= 3.0 && dist_y <= 4.0)
         });
-        assert!(has_radius_points, "Should have points at the expected radii");
+        assert!(
+            has_radius_points,
+            "Should have points at the expected radii"
+        );
     }
 
     #[test]
     fn ellipse_degenerate_cases() {
         let center = Vec2::new(20.0, 20.0);
-        
+
         // Horizontal line
         let samples_h = collect_ellipse(center, 5.0, 0.0);
         assert!(!samples_h.is_empty());
-        
+
         // Vertical line
         let samples_v = collect_ellipse(center, 0.0, 5.0);
         assert!(!samples_v.is_empty());

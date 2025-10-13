@@ -126,7 +126,7 @@ impl<'a> Renderer<'a> {
     pub fn draw_line_aa(&mut self, start: Vec2, end: Vec2, color: Color, model: Mat3) {
         let a_s = model.transform_vec2(start); // float, screen space
         let b_s = model.transform_vec2(end);
-        
+
         let start_tuple = (a_s.x, a_s.y);
         let end_tuple = (b_s.x, b_s.y);
 

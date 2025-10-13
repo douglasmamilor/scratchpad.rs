@@ -1,6 +1,6 @@
 use crate::color::Color;
-use crate::renderer::{Renderer, quantize_point, quantize_hspan};
 use crate::math::{Mat3, vec2::Vec2};
+use crate::renderer::{Renderer, quantize_hspan, quantize_point};
 
 impl<'a> Renderer<'a> {
     /// Draws the outline of a circle using the midpoint algorithm.
@@ -14,10 +14,10 @@ impl<'a> Renderer<'a> {
     /// use scratchpad_rs::color::Color;
     /// use scratchpad_rs::framebuffer::FrameBuffer;
     /// use scratchpad_rs::renderer::Renderer;
-    /// 
+    ///
     /// let mut frame_buffer = FrameBuffer::new(100, 100);
     /// let mut renderer = Renderer::new(&mut frame_buffer);
-    /// 
+    ///
     /// // Draw circle at (100.5, 50.0) with radius 25.0
     /// renderer.draw_circle(Vec2::new(100.5, 50.0), 25.0, Color::RED, Mat3::IDENTITY);
     /// ```
@@ -27,7 +27,7 @@ impl<'a> Renderer<'a> {
         }
 
         let center_s = model.transform_vec2(center); // float, screen space
-        
+
         if radius == 0.0 {
             let (ix, iy) = quantize_point(center_s);
             self.set_pixel((ix, iy), color);
@@ -48,7 +48,7 @@ impl<'a> Renderer<'a> {
             let (ix6, iy6) = quantize_point(Vec2::new(cx - y, cy + x));
             let (ix7, iy7) = quantize_point(Vec2::new(cx + y, cy - x));
             let (ix8, iy8) = quantize_point(Vec2::new(cx - y, cy - x));
-            
+
             self.set_pixel((ix1, iy1), color); // 1st octant (+x direction)
             self.set_pixel((ix2, iy2), color); // reflect across y-axis
             self.set_pixel((ix3, iy3), color); // reflect across x-axis
@@ -85,10 +85,10 @@ impl<'a> Renderer<'a> {
     /// use scratchpad_rs::color::Color;
     /// use scratchpad_rs::framebuffer::FrameBuffer;
     /// use scratchpad_rs::renderer::Renderer;
-    /// 
+    ///
     /// let mut frame_buffer = FrameBuffer::new(100, 100);
     /// let mut renderer = Renderer::new(&mut frame_buffer);
-    /// 
+    ///
     /// // Fill circle at (100.5, 50.0) with radius 25.0
     /// renderer.fill_circle(Vec2::new(100.5, 50.0), 25.0, Color::BLUE, Mat3::IDENTITY);
     /// ```
@@ -98,7 +98,7 @@ impl<'a> Renderer<'a> {
         }
 
         let center_s = model.transform_vec2(center); // float, screen space
-        
+
         if radius == 0.0 {
             let (ix, iy) = quantize_point(center_s);
             self.set_pixel((ix, iy), color);
@@ -114,13 +114,13 @@ impl<'a> Renderer<'a> {
             // 4 symmetric spans (covering all 8 octants)
             let (iy1, x0i1, x1i1) = quantize_hspan(center_s.y + y, center_s.x - x, center_s.x + x);
             self.hspan(iy1, x0i1, x1i1, color);
-            
+
             let (iy2, x0i2, x1i2) = quantize_hspan(center_s.y - y, center_s.x - x, center_s.x + x);
             self.hspan(iy2, x0i2, x1i2, color);
-            
+
             let (iy3, x0i3, x1i3) = quantize_hspan(center_s.y + x, center_s.x - y, center_s.x + y);
             self.hspan(iy3, x0i3, x1i3, color);
-            
+
             let (iy4, x0i4, x1i4) = quantize_hspan(center_s.y - x, center_s.x - y, center_s.x + y);
             self.hspan(iy4, x0i4, x1i4, color);
 
@@ -229,7 +229,7 @@ mod tests {
 
         // Should still draw a valid circle
         assert!(!samples.is_empty());
-        
+
         // Center should be rounded to (11, 16)
         let center_i = (center.x.round() as i32, center.y.round() as i32);
         assert_eq!(center_i, (11, 16));
@@ -243,7 +243,7 @@ mod tests {
 
         // Should draw a circle with radius 5.5
         assert!(!samples.is_empty());
-        
+
         // Should have points at approximately the right distance
         let center_i = (center.x.round() as i32, center.y.round() as i32);
         let has_radius_points = samples.iter().any(|&(x, y)| {
@@ -252,6 +252,9 @@ mod tests {
             let dist = ((dx * dx + dy * dy) as f32).sqrt();
             dist >= 5.0 && dist <= 6.0
         });
-        assert!(has_radius_points, "Should have points at the expected radius");
+        assert!(
+            has_radius_points,
+            "Should have points at the expected radius"
+        );
     }
 }

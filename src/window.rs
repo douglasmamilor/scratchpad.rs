@@ -1,8 +1,8 @@
 use crate::framebuffer::FrameBuffer;
+use sdl2::EventPump;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::{Canvas, Texture, TextureAccess, TextureCreator};
 use sdl2::video::{Window as SdlWindow, WindowContext};
-use sdl2::EventPump;
 
 /// A window wrapper that manages SDL2 rendering
 pub struct Window {
@@ -25,7 +25,7 @@ impl Window {
 
         let canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
         let texture_creator = canvas.texture_creator();
-        
+
         let event_pump = sdl_context.event_pump()?;
 
         Ok((
@@ -41,7 +41,7 @@ impl Window {
     /// Update the internal texture to match the framebuffer dimensions
     pub fn update_texture(&mut self, buffer: &FrameBuffer) -> Result<(), String> {
         let (width, height) = (buffer.width() as u32, buffer.height() as u32);
-        
+
         // Check if we need a new texture
         let needs_new = match &self.texture {
             None => true,
@@ -63,7 +63,7 @@ impl Window {
                             width,
                             height,
                         )
-                        .map_err(|e| e.to_string())?
+                        .map_err(|e| e.to_string())?,
                 )
             };
             self.texture = Some(new_texture);
@@ -75,20 +75,22 @@ impl Window {
     /// Present the framebuffer to the screen
     pub fn present(&mut self, buffer: &FrameBuffer) -> Result<(), String> {
         self.update_texture(buffer)?;
-        
+
         if let Some(ref mut texture) = self.texture {
-            texture.update(None, buffer.as_bytes(), buffer.pitch())
+            texture
+                .update(None, buffer.as_bytes(), buffer.pitch())
                 .map_err(|e| e.to_string())?;
             self.canvas.copy(texture, None, None)?;
             self.canvas.present();
         }
-        
+
         Ok(())
     }
 
     /// Clear the window with a specific color
     pub fn clear(&mut self, r: u8, g: u8, b: u8) {
-        self.canvas.set_draw_color(sdl2::pixels::Color::RGB(r, g, b));
+        self.canvas
+            .set_draw_color(sdl2::pixels::Color::RGB(r, g, b));
         self.canvas.clear();
     }
 }

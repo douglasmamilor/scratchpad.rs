@@ -15,10 +15,10 @@ impl<'a> Renderer<'a> {
     /// use scratchpad_rs::math::{vec2::Vec2, Mat3};
     /// use scratchpad_rs::renderer::Renderer;
     /// use scratchpad_rs::framebuffer::FrameBuffer;
-    /// 
+    ///
     /// let mut framebuffer = FrameBuffer::new(800, 600);
     /// let mut renderer = Renderer::new(&mut framebuffer);
-    /// 
+    ///
     /// let vertices = vec![
     ///     Vec2::new(100.0, 100.0),  // Top
     ///     Vec2::new(150.0, 150.0),  // Right
