@@ -1,5 +1,5 @@
 use crate::color::Color;
-use crate::math::vec2::Vec2;
+use crate::math::{IVec2, Vec2};
 use crate::renderer::{Renderer, quantize_point, snap_axis};
 
 impl<'a> Renderer<'a> {
@@ -107,7 +107,7 @@ impl<'a> Renderer<'a> {
     ///
     /// # Examples
     /// ```
-    /// use scratchpad_rs::math::Vec2;
+    /// use scratchpad_rs::math::IVec2;
     /// use scratchpad_rs::color::Color;
     /// use scratchpad_rs::framebuffer::FrameBuffer;
     /// use scratchpad_rs::renderer::Renderer;
@@ -115,22 +115,22 @@ impl<'a> Renderer<'a> {
     /// let mut frame_buffer = FrameBuffer::new(100, 100);
     /// let mut renderer = Renderer::new(&mut frame_buffer);
     ///
-    /// // Draw crisp rectangle from (10.5, 10.5) to (50.5, 30.5)
-    /// renderer.draw_rect_pixel(Vec2::new(10.5, 10.5), Vec2::new(50.5, 30.5), Color::WHITE);
+    /// // Draw crisp rectangle from (10, 10) to (50, 30)
+    /// renderer.draw_rect_pixel(IVec2::new(10, 10), IVec2::new(50, 30), Color::WHITE);
     /// ```
-    pub fn draw_rect_pixel(&mut self, p0: Vec2, p1: Vec2, color: Color) {
+    pub fn draw_rect_pixel(&mut self, p0: IVec2, p1: IVec2, color: Color) {
         let (x0, x1) = (p0.x.min(p1.x), p0.x.max(p1.x));
         let (y0, y1) = (p0.y.min(p1.y), p0.y.max(p1.y));
 
-        let x0s = snap_axis(x0, 1.0);
-        let x1s = snap_axis(x1, 1.0);
-        let y0s = snap_axis(y0, 1.0);
-        let y1s = snap_axis(y1, 1.0);
+        let x0s = snap_axis(x0 as f32, 1.0) as i32;
+        let x1s = snap_axis(x1 as f32, 1.0) as i32;
+        let y0s = snap_axis(y0 as f32, 1.0) as i32;
+        let y1s = snap_axis(y1 as f32, 1.0) as i32;
 
-        self.draw_line((x0s as i32, y0s as i32), (x1s as i32, y0s as i32), color);
-        self.draw_line((x0s as i32, y1s as i32), (x1s as i32, y1s as i32), color);
-        self.draw_line((x0s as i32, y0s as i32), (x0s as i32, y1s as i32), color);
-        self.draw_line((x1s as i32, y0s as i32), (x1s as i32, y1s as i32), color);
+        self.draw_line_pixel(IVec2::new(x0s, y0s), IVec2::new(x1s, y0s), color);
+        self.draw_line_pixel(IVec2::new(x0s, y1s), IVec2::new(x1s, y1s), color);
+        self.draw_line_pixel(IVec2::new(x0s, y0s), IVec2::new(x0s, y1s), color);
+        self.draw_line_pixel(IVec2::new(x1s, y0s), IVec2::new(x1s, y1s), color);
     }
 
     /// Legacy function for backward compatibility.
@@ -311,8 +311,8 @@ mod tests {
 
     #[test]
     fn draw_rect_pixel_crisp() {
-        let p0 = Vec2::new(10.5, 10.5);
-        let p1 = Vec2::new(15.5, 15.5);
+        let p0 = IVec2::new(10, 10);
+        let p1 = IVec2::new(15, 15);
         let mut fb = FrameBuffer::new(96, 96);
         {
             let mut renderer = Renderer::new(&mut fb);
@@ -330,9 +330,9 @@ mod tests {
         // Should draw crisp lines
         assert!(!points.is_empty());
 
-        // Should have snapped coordinates
-        assert!(points.contains(&(11, 11))); // Snapped to 10.5 + 0.5 = 11.0
-        assert!(points.contains(&(16, 16))); // Snapped to 15.5 + 0.5 = 16.0
+        // Should have crisp pixel coordinates
+        assert!(points.contains(&(10, 10))); // Top-left corner
+        assert!(points.contains(&(15, 15))); // Bottom-right corner
     }
 
     #[test]

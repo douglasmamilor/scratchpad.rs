@@ -1,6 +1,6 @@
 use super::Renderer;
 use crate::color::Color;
-use crate::math::vec2::Vec2;
+use crate::math::{IVec2, Vec2};
 
 impl<'a> Renderer<'a> {
     pub fn flood_fill<F>(&mut self, px: (i32, i32), new_color: Color, matches: F, conn_8: bool)
@@ -130,7 +130,7 @@ mod tests {
     fn flood_fill_simple_rectangle() {
         let pixels = collect_pixels(10, 10, |renderer| {
             // Draw a rectangle outline
-            renderer.draw_rect_pixel(Vec2::new(2.0, 2.0), Vec2::new(6.0, 6.0), Color::WHITE);
+            renderer.draw_rect_pixel(IVec2::new(2, 2), IVec2::new(6, 6), Color::WHITE);
             // Fill the interior
             renderer.flood_fill(
                 (5, 5),
@@ -200,8 +200,8 @@ mod tests {
     fn flood_fill_boundary_detection() {
         let pixels = collect_pixels(10, 10, |renderer| {
             // Draw two separate regions with different boundary colors
-            renderer.draw_rect_pixel(Vec2::new(1.0, 1.0), Vec2::new(3.0, 3.0), Color::RED);
-            renderer.draw_rect_pixel(Vec2::new(5.0, 5.0), Vec2::new(3.0, 3.0), Color::BLUE);
+            renderer.draw_rect_pixel(IVec2::new(1, 1), IVec2::new(3, 3), Color::RED);
+            renderer.draw_rect_pixel(IVec2::new(5, 5), IVec2::new(3, 3), Color::BLUE);
 
             // Fill only the red-bounded region
             renderer.flood_fill(
@@ -276,7 +276,7 @@ mod tests {
     fn flood_fill_line() {
         let pixels = collect_pixels(10, 10, |renderer| {
             // Draw a horizontal line
-            renderer.draw_line((2, 5), (7, 5), Color::WHITE);
+            renderer.draw_line_pixel(IVec2::new(2, 5), IVec2::new(7, 5), Color::WHITE);
 
             // Fill it
             renderer.flood_fill(
@@ -296,10 +296,10 @@ mod tests {
     fn flood_fill_complex_shape() {
         let pixels = collect_pixels(15, 15, |renderer| {
             // Draw a complex L-shaped boundary
-            renderer.draw_rect_pixel(Vec2::new(2.0, 2.0), Vec2::new(6.0, 2.0), Color::WHITE); // Top horizontal
-            renderer.draw_rect_pixel(Vec2::new(2.0, 2.0), Vec2::new(2.0, 6.0), Color::WHITE); // Left vertical
-            renderer.draw_rect_pixel(Vec2::new(2.0, 6.0), Vec2::new(4.0, 2.0), Color::WHITE); // Bottom horizontal (shorter)
-            renderer.draw_rect_pixel(Vec2::new(4.0, 4.0), Vec2::new(2.0, 4.0), Color::WHITE); // Right vertical (shorter)
+            renderer.draw_rect_pixel(IVec2::new(2, 2), IVec2::new(6, 2), Color::WHITE); // Top horizontal
+            renderer.draw_rect_pixel(IVec2::new(2, 2), IVec2::new(2, 6), Color::WHITE); // Left vertical
+            renderer.draw_rect_pixel(IVec2::new(2, 6), IVec2::new(4, 2), Color::WHITE); // Bottom horizontal (shorter)
+            renderer.draw_rect_pixel(IVec2::new(4, 4), IVec2::new(2, 4), Color::WHITE); // Right vertical (shorter)
 
             // Fill the interior
             renderer.flood_fill(
@@ -345,7 +345,7 @@ mod tests {
     fn flood_fill_performance_large_area() {
         let pixels = collect_pixels(50, 50, |renderer| {
             // Draw a large rectangle outline
-            renderer.draw_rect_pixel(Vec2::new(5.0, 5.0), Vec2::new(40.0, 40.0), Color::WHITE);
+            renderer.draw_rect_pixel(IVec2::new(5, 5), IVec2::new(40, 40), Color::WHITE);
 
             // Fill the large interior
             renderer.flood_fill(

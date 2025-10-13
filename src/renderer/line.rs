@@ -1,5 +1,6 @@
 use super::Renderer;
 use crate::color::Color;
+use crate::math::IVec2;
 
 impl<'a> Renderer<'a> {
     fn visit_line_points<F>(start: (i32, i32), end: (i32, i32), mut visit: F)
@@ -57,9 +58,27 @@ impl<'a> Renderer<'a> {
         points
     }
 
-    pub fn draw_line(&mut self, start: (i32, i32), end: (i32, i32), color: Color) {
+    /// Draws a crisp 1-pixel line using Bresenham's algorithm.
+    /// 
+    /// Uses integer coordinates for pixel-perfect drawing.
+    /// This is the fast, crisp counterpart to `draw_line_aa`.
+    /// 
+    /// # Examples
+    /// ```
+    /// use scratchpad_rs::math::IVec2;
+    /// use scratchpad_rs::color::Color;
+    /// use scratchpad_rs::framebuffer::FrameBuffer;
+    /// use scratchpad_rs::renderer::Renderer;
+    /// 
+    /// let mut frame_buffer = FrameBuffer::new(100, 100);
+    /// let mut renderer = Renderer::new(&mut frame_buffer);
+    /// 
+    /// // Draw crisp line from (10, 10) to (50, 30)
+    /// renderer.draw_line_pixel(IVec2::new(10, 10), IVec2::new(50, 30), Color::RED);
+    /// ```
+    pub fn draw_line_pixel(&mut self, a: IVec2, b: IVec2, color: Color) {
         // Note: the visitor lets us draw without allocating the intermediate Vec
-        Renderer::visit_line_points(start, end, |point| {
+        Renderer::visit_line_points((a.x, a.y), (b.x, b.y), |point| {
             self.set_pixel(point, color);
             true
         });
