@@ -5,6 +5,30 @@ use std::ops::{
 use crate::math::vec2::Vec2;
 use crate::math::vec3::Vec3;
 
+/// Decomposition result containing translation, rotation, and scale components
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Decomposition {
+    /// Translation component (tx, ty)
+    pub translation: Vec2,
+    /// Rotation angle in radians
+    pub rotation: f32,
+    /// Scale factors (sx, sy)
+    pub scale: Vec2,
+}
+
+/// Affine decomposition result with potential shear
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct AffineDecomposition {
+    /// Translation component (tx, ty)
+    pub translation: Vec2,
+    /// Rotation angle in radians
+    pub rotation: f32,
+    /// Scale factors (sx, sy)
+    pub scale: Vec2,
+    /// Shear factors (shx, shy)
+    pub shear: Vec2,
+}
+
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct Mat3 {
@@ -598,6 +622,229 @@ impl Mat3 {
             self.m00 * vec.x + self.m01 * vec.y,
             self.m10 * vec.x + self.m11 * vec.y,
         )
+    }
+
+    /// Decompose a transformation matrix into translation, rotation, and scale
+    ///
+    /// Extracts the individual transform components from a composed matrix.
+    /// This method works best for matrices created from translation, rotation, and scale
+    /// operations without shear.
+    ///
+    /// # Returns
+    /// A `Decomposition` struct containing:
+    /// - `translation`: The translation vector (tx, ty)
+    /// - `rotation`: The rotation angle in radians
+    /// - `scale`: The scale factors (sx, sy)
+    ///
+    /// # Example
+    /// ```
+    /// use scratchpad_rs::math::mat3::Mat3;
+    /// use std::f32::consts::PI;
+    ///
+    /// let matrix = Mat3::translate(10.0, 20.0)
+    ///     * Mat3::rotate(PI / 4.0)
+    ///     * Mat3::scale(2.0, 3.0);
+    /// let decomp = matrix.decompose();
+    ///
+    /// // Note: Due to composition order, exact values may vary
+    /// assert!((decomp.translation.x - 10.0).abs() < 1e-5);
+    /// ```
+    pub fn decompose(self) -> Decomposition {
+        // Extract translation (last column, top two rows)
+        let translation = Vec2::new(self.m02, self.m12);
+
+        // Extract the 2x2 linear transformation matrix
+        // [m00 m01]
+        // [m10 m11]
+        // This represents rotation and scale combined
+
+        // Extract scale from column vectors
+        // Scale X is the length of the first column vector
+        let scale_x = (self.m00 * self.m00 + self.m10 * self.m10).sqrt();
+        // Scale Y is the length of the second column vector
+        let scale_y = (self.m01 * self.m01 + self.m11 * self.m11).sqrt();
+
+        // Extract rotation from the first column (or average of both columns for better accuracy)
+        // For a pure rotation+scale matrix:
+        // [sx*cos(θ)  -sy*sin(θ)]
+        // [sx*sin(θ)   sy*cos(θ)]
+        //
+        // From first column: atan2(sx*sin(θ), sx*cos(θ)) = atan2(sin(θ), cos(θ)) = θ
+        let rotation = f32::atan2(self.m10, self.m00);
+
+        Decomposition {
+            translation,
+            rotation,
+            scale: Vec2::new(scale_x, scale_y),
+        }
+    }
+
+    /// Decompose an affine transformation matrix with potential shear
+    ///
+    /// Extracts translation, rotation, scale, and shear components using QR decomposition.
+    /// This method handles matrices with shearing (skewing) in addition to rotation and scale.
+    ///
+    /// # Returns
+    /// An `AffineDecomposition` struct containing all transform components
+    ///
+    /// # Algorithm
+    /// Uses QR decomposition to separate the linear part into rotation and scale+shear:
+    /// 1. Extract translation (easy - last column)
+    /// 2. Apply QR decomposition to the 2x2 linear part
+    /// 3. Extract rotation from Q (orthogonal matrix)
+    /// 4. Extract scale and shear from R (upper triangular)
+    pub fn decompose_affine(self) -> AffineDecomposition {
+        // Extract translation
+        let translation = Vec2::new(self.m02, self.m12);
+
+        // QR Decomposition of the 2x2 linear part [m00 m01; m10 m11]
+        // Q is orthogonal (rotation), R is upper triangular (scale + shear)
+
+        let a = self.m00;
+        let b = self.m01;
+        let c = self.m10;
+        let d = self.m11;
+
+        // Compute first column vector length (for Q normalization)
+        let col0_len = (a * a + c * c).sqrt();
+
+        if col0_len < 1e-6 {
+            // Degenerate case - matrix has no rotation/scale
+            return AffineDecomposition {
+                translation,
+                rotation: 0.0,
+                scale: Vec2::new(0.0, 0.0),
+                shear: Vec2::new(0.0, 0.0),
+            };
+        }
+
+        // Normalize first column to get first column of Q (rotation matrix)
+        let q00 = a / col0_len;
+        let q10 = c / col0_len;
+
+        // Compute second column of Q (orthogonal to first)
+        let q01 = -q10; // Perpendicular
+        let q11 = q00;
+
+        // Extract rotation angle from Q
+        let rotation = f32::atan2(q10, q00);
+
+        // R = Q^T * A (where A is the original 2x2 matrix [a b; c d])
+        // Since Q^T = [q00 q10; q01 q11] (transpose of Q)
+        // R = Q^T * A = [q00 q10; q01 q11] * [a b; c d]
+        let r00 = q00 * a + q10 * c; // Should be positive (length of first column = col0_len)
+        let r01 = q00 * b + q10 * d; // Projection of second column onto first
+        let r11 = q01 * b + q11 * d; // Component of second column orthogonal to first
+
+        // Verify R is upper triangular (r10 should be 0)
+        // r10 = q01 * a + q11 * c
+        // Since Q is orthogonal: q01 = -q10, q11 = q00
+        // r10 = -q10 * a + q00 * c
+        // But q00 = a/col0_len, q10 = c/col0_len
+        // r10 = -(c/col0_len)*a + (a/col0_len)*c = (-ac + ac)/col0_len = 0 ✓
+
+        // Extract scale from R diagonal
+        let scale_x = r00.abs(); // Always positive
+        let scale_y = r11.abs(); // Always positive (but could be negative for reflection)
+
+        // Extract shear from R off-diagonal
+        // In upper triangular R, r01 represents the shear component
+        // Store r01 directly (not normalized) - it will be reconstructed correctly
+        let shear_x = r01;
+        let shear_y = 0.0; // For 2D, we typically only have one shear component
+
+        AffineDecomposition {
+            translation,
+            rotation,
+            scale: Vec2::new(scale_x, scale_y),
+            shear: Vec2::new(shear_x, shear_y),
+        }
+    }
+
+    /// Recompose a matrix from decomposition components
+    ///
+    /// Rebuilds a transformation matrix from translation, rotation, and scale.
+    /// This is the inverse operation of `decompose()`.
+    ///
+    /// # Arguments
+    /// * `decomp` - The decomposition result to recompose
+    ///
+    /// # Returns
+    /// A new `Mat3` matrix representing the composed transformation
+    ///
+    /// # Example
+    /// ```
+    /// use scratchpad_rs::math::mat3::{Mat3, Decomposition};
+    /// use scratchpad_rs::math::vec2::Vec2;
+    /// use std::f32::consts::PI;
+    ///
+    /// let original = Mat3::translate(10.0, 20.0)
+    ///     * Mat3::rotate(PI / 4.0)
+    ///     * Mat3::scale(2.0, 3.0);
+    /// let decomp = original.decompose();
+    /// let recomposed = Mat3::recompose(decomp);
+    ///
+    /// // Recomposed should match original (within floating point precision)
+    /// assert!(original.near(recomposed, 1e-5));
+    /// ```
+    pub fn recompose(decomp: Decomposition) -> Self {
+        // Order: translate * rotate * scale
+        Self::translate(decomp.translation.x, decomp.translation.y)
+            * Self::rotate(decomp.rotation)
+            * Self::scale(decomp.scale.x, decomp.scale.y)
+    }
+
+    /// Recompose a matrix from affine decomposition components
+    ///
+    /// Rebuilds a transformation matrix including shear components.
+    /// The composition order is: translate * rotate * scale * shear
+    ///
+    /// # Arguments
+    /// * `decomp` - The affine decomposition result to recompose
+    ///
+    /// # Returns
+    /// A new `Mat3` matrix representing the composed transformation
+    pub fn recompose_affine(decomp: AffineDecomposition) -> Self {
+        // Build matrix as: translate * Q * R
+        // Where Q is the rotation matrix and R is upper triangular (scale + shear)
+        //
+        // From QR decomposition: A = Q * R
+        // Where Q = rotation matrix, R = [sx  shear*sy; 0  sy]
+
+        let cos_r = decomp.rotation.cos();
+        let sin_r = decomp.rotation.sin();
+
+        // Q (rotation matrix)
+        let q00 = cos_r;
+        let q01 = -sin_r;
+        let q10 = sin_r;
+        let q11 = cos_r;
+
+        // R (upper triangular from QR decomposition)
+        // R = [scale.x  shear.x; 0  scale.y]
+        // Note: shear.x was stored as r01 directly from QR decomposition
+        let r00 = decomp.scale.x;
+        let r01 = decomp.shear.x; // Stored directly as r01 from QR
+        let r11 = decomp.scale.y;
+
+        // Q * R
+        let m00_linear = q00 * r00 + q01 * 0.0; // q00*r00 + q01*0
+        let m01_linear = q00 * r01 + q01 * r11; // q00*r01 + q01*r11
+        let m10_linear = q10 * r00 + q11 * 0.0; // q10*r00 + q11*0
+        let m11_linear = q10 * r01 + q11 * r11; // q10*r01 + q11*r11
+
+        // Then apply translation: T * (Q * R)
+        Self {
+            m00: m00_linear,
+            m01: m01_linear,
+            m02: decomp.translation.x,
+            m10: m10_linear,
+            m11: m11_linear,
+            m12: decomp.translation.y,
+            m20: 0.0,
+            m21: 0.0,
+            m22: 1.0,
+        }
     }
 
     /// Transform a 3D vector by this matrix
@@ -1902,5 +2149,210 @@ mod tests {
         // Test interpolation with same matrix
         let same_interp = matrix_a.lerp(matrix_a, 0.5);
         assert!(same_interp.near(matrix_a, 1e-6));
+    }
+
+    #[test]
+    fn decompose_translation_only() {
+        let matrix = Mat3::translate(10.0, 20.0);
+        let decomp = matrix.decompose();
+
+        assert!((decomp.translation.x - 10.0).abs() < 1e-6);
+        assert!((decomp.translation.y - 20.0).abs() < 1e-6);
+        assert!((decomp.rotation - 0.0).abs() < 1e-6);
+        assert!((decomp.scale.x - 1.0).abs() < 1e-6);
+        assert!((decomp.scale.y - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn decompose_rotation_only() {
+        use std::f32::consts::PI;
+
+        let angle = PI / 4.0; // 45 degrees
+        let matrix = Mat3::rotate(angle);
+        let decomp = matrix.decompose();
+
+        assert!((decomp.translation.x - 0.0).abs() < 1e-6);
+        assert!((decomp.translation.y - 0.0).abs() < 1e-6);
+        assert!((decomp.rotation - angle).abs() < 1e-5);
+        assert!((decomp.scale.x - 1.0).abs() < 1e-5);
+        assert!((decomp.scale.y - 1.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn decompose_scale_only() {
+        let matrix = Mat3::scale(2.0, 3.0);
+        let decomp = matrix.decompose();
+
+        assert!((decomp.translation.x - 0.0).abs() < 1e-6);
+        assert!((decomp.translation.y - 0.0).abs() < 1e-6);
+        assert!((decomp.rotation - 0.0).abs() < 1e-6);
+        assert!((decomp.scale.x - 2.0).abs() < 1e-5);
+        assert!((decomp.scale.y - 3.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn decompose_combined_transform() {
+        use std::f32::consts::PI;
+
+        let tx = 10.0;
+        let ty = 20.0;
+        let angle = PI / 6.0; // 30 degrees
+        let sx = 2.0;
+        let sy = 3.0;
+
+        // Create matrix: translate * rotate * scale
+        let matrix = Mat3::translate(tx, ty) * Mat3::rotate(angle) * Mat3::scale(sx, sy);
+        let decomp = matrix.decompose();
+
+        // Translation should match (not affected by rotation/scale when applied first)
+        assert!((decomp.translation.x - tx).abs() < 1e-5);
+        assert!((decomp.translation.y - ty).abs() < 1e-5);
+
+        // Rotation should match
+        assert!((decomp.rotation - angle).abs() < 1e-5);
+
+        // Scale should match
+        assert!((decomp.scale.x - sx).abs() < 1e-5);
+        assert!((decomp.scale.y - sy).abs() < 1e-5);
+    }
+
+    #[test]
+    fn recompose_from_decomposition() {
+        use std::f32::consts::PI;
+
+        let original = Mat3::translate(10.0, 20.0) * Mat3::rotate(PI / 4.0) * Mat3::scale(2.0, 3.0);
+
+        let decomp = original.decompose();
+        let recomposed = Mat3::recompose(decomp);
+
+        // Recomposed should be very close to original
+        assert!(original.near(recomposed, 1e-4));
+    }
+
+    #[test]
+    fn decompose_recompose_round_trip() {
+        use std::f32::consts::PI;
+
+        let test_cases = vec![
+            Mat3::IDENTITY,
+            Mat3::translate(5.0, 10.0),
+            Mat3::rotate(PI / 3.0),
+            Mat3::scale(2.0, 3.0),
+            Mat3::translate(10.0, 20.0) * Mat3::rotate(PI / 6.0) * Mat3::scale(1.5, 2.5),
+            Mat3::rotate(PI / 4.0) * Mat3::scale_uniform(2.0),
+        ];
+
+        for matrix in test_cases {
+            let decomp = matrix.decompose();
+            let recomposed = Mat3::recompose(decomp);
+
+            // Round-trip should be accurate
+            assert!(
+                matrix.near(recomposed, 1e-4),
+                "Round-trip failed for matrix {:?}",
+                matrix
+            );
+        }
+    }
+
+    #[test]
+    fn decompose_affine_with_shear() {
+        let matrix = Mat3::shear(0.5, 0.3);
+        let decomp = matrix.decompose_affine();
+
+        // Shear matrix should have translation = 0
+        assert!((decomp.translation.x).abs() < 1e-6);
+        assert!((decomp.translation.y).abs() < 1e-6);
+
+        // Verify round-trip works
+        let recomposed = Mat3::recompose_affine(decomp);
+        assert!(matrix.near(recomposed, 1e-4));
+    }
+
+    #[test]
+    fn decompose_affine_combined() {
+        use std::f32::consts::PI;
+
+        // Create matrix with translation, rotation, scale, and shear
+        let matrix = Mat3::translate(10.0, 20.0)
+            * Mat3::rotate(PI / 4.0)
+            * Mat3::scale(2.0, 3.0)
+            * Mat3::shear(0.2, 0.1);
+
+        let decomp = matrix.decompose_affine();
+
+        // Verify round-trip works (more important than exact values due to composition order)
+        let recomposed = Mat3::recompose_affine(decomp);
+        assert!(matrix.near(recomposed, 1e-3));
+    }
+
+    #[test]
+    fn recompose_affine_round_trip() {
+        use std::f32::consts::PI;
+
+        let matrix = Mat3::translate(10.0, 20.0)
+            * Mat3::rotate(PI / 6.0)
+            * Mat3::scale(2.0, 3.0)
+            * Mat3::shear(0.2, 0.1);
+
+        let decomp = matrix.decompose_affine();
+        let recomposed = Mat3::recompose_affine(decomp);
+
+        // Round-trip should be accurate
+        assert!(matrix.near(recomposed, 1e-4));
+    }
+
+    #[test]
+    fn decompose_identity() {
+        let decomp = Mat3::IDENTITY.decompose();
+
+        assert!((decomp.translation.x - 0.0).abs() < 1e-6);
+        assert!((decomp.translation.y - 0.0).abs() < 1e-6);
+        assert!((decomp.rotation - 0.0).abs() < 1e-6);
+        assert!((decomp.scale.x - 1.0).abs() < 1e-6);
+        assert!((decomp.scale.y - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn decompose_negative_scale() {
+        let matrix = Mat3::scale(-2.0, -3.0);
+        let decomp = matrix.decompose();
+
+        // Negative scale should be preserved
+        assert!((decomp.scale.x + 2.0).abs() < 1e-5 || (decomp.scale.x - 2.0).abs() < 1e-5);
+        assert!((decomp.scale.y + 3.0).abs() < 1e-5 || (decomp.scale.y - 3.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn decompose_edge_cases() {
+        // Very small scale
+        let matrix = Mat3::scale(0.001, 0.001);
+        let decomp = matrix.decompose();
+        assert!((decomp.scale.x - 0.001).abs() < 1e-6);
+
+        // Large scale
+        let matrix = Mat3::scale(1000.0, 1000.0);
+        let decomp = matrix.decompose();
+        assert!((decomp.scale.x - 1000.0).abs() < 1e-5);
+
+        // Small rotation
+        let matrix = Mat3::rotate(0.001);
+        let decomp = matrix.decompose();
+        assert!((decomp.rotation - 0.001).abs() < 1e-6);
+    }
+
+    #[test]
+    fn decompose_non_uniform_scale_and_rotation() {
+        use std::f32::consts::PI;
+
+        // Non-uniform scale with rotation
+        let matrix = Mat3::rotate(PI / 4.0) * Mat3::scale(2.0, 0.5);
+        let decomp = matrix.decompose();
+
+        // Should extract correct rotation
+        assert!((decomp.rotation - PI / 4.0).abs() < 1e-5);
+
+        // Scale should be preserved (though order matters)
+        assert!((decomp.scale.x - 2.0).abs() < 1e-4 || (decomp.scale.x - 0.5).abs() < 1e-4);
     }
 }

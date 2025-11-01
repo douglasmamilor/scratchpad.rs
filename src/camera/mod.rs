@@ -1,7 +1,9 @@
+mod viewport;
+
 use crate::math::{Mat3, Point2, Rect, Vec3};
 
 pub struct Camera {
-    // Position in world space
+    // Position in world space. A cameras poistion is the point it is **centred on**.
     position: Point2,
     // Zoom level (1.0 = normal, >1.0 = zoomed in, <1.0 = zoomed out)
     zoom: f32,
@@ -55,7 +57,7 @@ impl Camera {
         Mat3::translate(self.viewport.width / 2.0, self.viewport.height / 2.0) // move camera origin to center of viewport
         * Mat3::scale(1.0/self.zoom, 1.0/self.zoom) // scale world opposite to camera zoom
         * Mat3::rotate(-self.rotation) // rotate world opposite to camera rotation
-        * Mat3::translate(-self.position.x, -self.position.y) // move world to camera
+        * Mat3::translate(-self.position.x, -self.position.y) // move world based on camera pos
     }
 
     // Camera movement helpers
@@ -69,6 +71,25 @@ impl Camera {
 
     pub fn zoom_by(&mut self, factor: f32) {
         self.zoom *= factor;
+    }
+
+    // Viewport management
+    /// Update viewport when window resizes
+    pub fn set_viewport(&mut self, viewport: Rect) {
+        self.viewport = viewport;
+    }
+
+    /// Get current viewport
+    pub fn viewport(&self) -> Rect {
+        self.viewport
+    }
+
+    /// Get viewport center in screen coordinates
+    pub fn viewport_center(&self) -> Point2 {
+        Point2::new(
+            self.viewport.x + self.viewport.width / 2.0,
+            self.viewport.y + self.viewport.height / 2.0,
+        )
     }
 }
 
@@ -433,5 +454,60 @@ mod tests {
 
         // Rotation accumulates (no automatic wrapping)
         assert!((camera.rotation - PI * 4.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn viewport_getter() {
+        let viewport = Rect::new(10.0, 20.0, 800.0, 600.0);
+        let camera = Camera::default(viewport);
+
+        let retrieved_viewport = camera.viewport();
+        assert_eq!(retrieved_viewport.x, 10.0);
+        assert_eq!(retrieved_viewport.y, 20.0);
+        assert_eq!(retrieved_viewport.width, 800.0);
+        assert_eq!(retrieved_viewport.height, 600.0);
+    }
+
+    #[test]
+    fn viewport_setter() {
+        let initial_viewport = Rect::new(0.0, 0.0, 800.0, 600.0);
+        let mut camera = Camera::default(initial_viewport);
+
+        // Change viewport
+        let new_viewport = Rect::new(0.0, 0.0, 1920.0, 1080.0);
+        camera.set_viewport(new_viewport);
+
+        // Verify viewport changed
+        let retrieved = camera.viewport();
+        assert_eq!(retrieved.width, 1920.0);
+        assert_eq!(retrieved.height, 1080.0);
+
+        // Verify it affects coordinate conversion
+        let world_origin = Point2::new(0.0, 0.0);
+        let screen_point = camera.world_to_screen(world_origin);
+        // Should now map to new viewport center (960, 540)
+        assert!((screen_point.x - 960.0).abs() < 1e-5);
+        assert!((screen_point.y - 540.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn viewport_center() {
+        let viewport = Rect::new(0.0, 0.0, 800.0, 600.0);
+        let camera = Camera::default(viewport);
+
+        let center = camera.viewport_center();
+        assert_eq!(center.x, 400.0);
+        assert_eq!(center.y, 300.0);
+    }
+
+    #[test]
+    fn viewport_center_offset() {
+        let viewport = Rect::new(100.0, 50.0, 800.0, 600.0);
+        let camera = Camera::default(viewport);
+
+        let center = camera.viewport_center();
+        // Center should be (100 + 400, 50 + 300) = (500, 350)
+        assert_eq!(center.x, 500.0);
+        assert_eq!(center.y, 350.0);
     }
 }
