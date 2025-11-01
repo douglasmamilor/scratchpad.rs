@@ -1,6 +1,7 @@
 mod viewport;
 
 use crate::math::{Mat3, Point2, Rect, Vec3};
+use crate::math::space::{ScreenPoint, WorldPoint};
 
 pub struct Camera {
     // Position in world space. A cameras poistion is the point it is **centred on**.
@@ -49,6 +50,18 @@ impl Camera {
         let world_point = inv_view_matrix * screenvec3;
 
         Point2::new(world_point.x, world_point.y)
+    }
+
+    // Type-safe conversion: WorldPoint to ScreenPoint
+    pub fn world_to_screen_space(&self, world_point: WorldPoint) -> ScreenPoint {
+        let screen = self.world_to_screen(world_point.to_point2());
+        ScreenPoint::from_point2(screen)
+    }
+
+    // Type-safe conversion: ScreenPoint to WorldPoint
+    pub fn screen_to_world_space(&self, screen_point: ScreenPoint) -> WorldPoint {
+        let world = self.screen_to_world(screen_point.to_point2());
+        WorldPoint::from_point2(world)
     }
 
     // Get the view matrix (for use with TransformStack)
@@ -417,6 +430,46 @@ mod tests {
 
         assert!((screen2.x - 960.0).abs() < 1e-5);
         assert!((screen2.y - 540.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn world_to_screen_space_type_safe() {
+        let viewport = Rect::new(0.0, 0.0, 800.0, 600.0);
+        let camera = Camera::new(Point2::new(0.0, 0.0), 1.0, 0.0, viewport);
+
+        let world_point = WorldPoint::new(100.0, 50.0);
+        let screen_point = camera.world_to_screen_space(world_point);
+
+        // Verify type safety - these are different types
+        assert_eq!(screen_point.x(), 500.0); // world 100 + viewport center 400
+        assert_eq!(screen_point.y(), 350.0); // world 50 + viewport center 300
+    }
+
+    #[test]
+    fn screen_to_world_space_type_safe() {
+        let viewport = Rect::new(0.0, 0.0, 800.0, 600.0);
+        let camera = Camera::new(Point2::new(0.0, 0.0), 1.0, 0.0, viewport);
+
+        let screen_point = ScreenPoint::new(500.0, 300.0);
+        let world_point = camera.screen_to_world_space(screen_point);
+
+        // Should convert back correctly
+        assert_eq!(world_point.x(), 100.0);
+        assert_eq!(world_point.y(), 0.0);
+    }
+
+    #[test]
+    fn coordinate_space_round_trip() {
+        let viewport = Rect::new(0.0, 0.0, 800.0, 600.0);
+        let camera = Camera::new(Point2::new(0.0, 0.0), 1.0, 0.0, viewport);
+
+        let original = WorldPoint::new(123.0, 456.0);
+        let screen = camera.world_to_screen_space(original);
+        let back_to_world = camera.screen_to_world_space(screen);
+
+        // Should round-trip correctly
+        assert!((original.x() - back_to_world.x()).abs() < 1e-5);
+        assert!((original.y() - back_to_world.y()).abs() < 1e-5);
     }
 
     #[test]

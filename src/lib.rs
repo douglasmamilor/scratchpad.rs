@@ -10,4 +10,5 @@ pub mod window;
 
 // Re-export commonly used types for convenience
 pub use math::{Mat3, Point2, Rect, Vec2};
+pub use math::space::{ScreenPoint, ScreenVec2, WorldPoint, WorldVec2};
 pub use camera::Camera as Camera;
