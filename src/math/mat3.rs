@@ -453,6 +453,12 @@ impl Mat3 {
         }
     }
 
+    pub fn rotate_around_point(angle: f32, pivot: Vec2) -> Self {
+        Mat3::translate(pivot.x, pivot.y)
+            * Mat3::rotate(angle)
+            * Mat3::translate(-pivot.x, -pivot.y)
+    }
+
     /// Create a scaling matrix
     ///
     /// Creates a matrix that scales points by (sx, sy).
@@ -482,6 +488,11 @@ impl Mat3 {
         }
     }
 
+    pub fn scale_around_point(sx: f32, sy: f32, pivot: Vec2) -> Self {
+        Mat3::translate(pivot.x, pivot.y)
+            * Mat3::scale(sx, sy)
+            * Mat3::translate(-pivot.x, -pivot.y)
+    }
     /// Create a uniform scaling matrix
     ///
     /// Creates a matrix that scales points uniformly by the given factor.
@@ -2321,6 +2332,200 @@ mod tests {
         // Negative scale should be preserved
         assert!((decomp.scale.x + 2.0).abs() < 1e-5 || (decomp.scale.x - 2.0).abs() < 1e-5);
         assert!((decomp.scale.y + 3.0).abs() < 1e-5 || (decomp.scale.y - 3.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn rotate_around_point_origin() {
+        // Rotating around origin should be same as regular rotate
+        let angle = std::f32::consts::PI / 4.0; // 45 degrees
+        let pivot = Vec2::new(0.0, 0.0);
+        let rotate_around = Mat3::rotate_around_point(angle, pivot);
+        let rotate_normal = Mat3::rotate(angle);
+
+        assert!(rotate_around.near(rotate_normal, 1e-6));
+    }
+
+    #[test]
+    fn rotate_around_point_center() {
+        use std::f32::consts::PI;
+
+        // Rotate 90 degrees around point (100, 100)
+        let angle = PI / 2.0;
+        let pivot = Vec2::new(100.0, 100.0);
+        let matrix = Mat3::rotate_around_point(angle, pivot);
+
+        // Point at pivot should stay at pivot
+        let pivot_point = Vec3::new(pivot.x, pivot.y, 1.0);
+        let transformed_pivot = matrix * pivot_point;
+        // Note: transformed_pivot is Vec3, need to check x and y components
+        assert!((transformed_pivot.x - pivot.x).abs() < 1e-5);
+        assert!((transformed_pivot.y - pivot.y).abs() < 1e-5);
+
+        // Point at (110, 100) should rotate to (100, 110)
+        let point = Vec3::new(110.0, 100.0, 1.0);
+        let transformed = matrix * point;
+        assert!((transformed.x - 100.0).abs() < 1e-5);
+        assert!((transformed.y - 110.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn rotate_around_point_full_rotation() {
+        use std::f32::consts::PI;
+
+        // Rotate 360 degrees around point - should return to original
+        let angle = 2.0 * PI;
+        let pivot = Vec2::new(50.0, 75.0);
+        let matrix = Mat3::rotate_around_point(angle, pivot);
+
+        let test_point = Vec3::new(100.0, 100.0, 1.0);
+        let transformed = matrix * test_point;
+
+        // Should be approximately the same (within floating point precision)
+        assert!((transformed.x - 100.0).abs() < 1e-5);
+        assert!((transformed.y - 100.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn rotate_around_point_arbitrary() {
+        use std::f32::consts::PI;
+
+        // Rotate around arbitrary point
+        let angle = PI / 3.0; // 60 degrees
+        let pivot = Vec2::new(200.0, 150.0);
+        let matrix = Mat3::rotate_around_point(angle, pivot);
+
+        // Pivot should remain unchanged
+        let pivot_point = Vec3::new(pivot.x, pivot.y, 1.0);
+        let transformed_pivot = matrix * pivot_point;
+        assert!((transformed_pivot.x - pivot.x).abs() < 1e-6);
+        assert!((transformed_pivot.y - pivot.y).abs() < 1e-6);
+    }
+
+    #[test]
+    fn rotate_around_point_zero_angle() {
+        // Zero rotation should be identity
+        let pivot = Vec2::new(100.0, 100.0);
+        let matrix = Mat3::rotate_around_point(0.0, pivot);
+
+        assert!(matrix.near(Mat3::IDENTITY, 1e-6));
+    }
+
+    #[test]
+    fn scale_around_point_origin() {
+        // Scaling around origin should be same as regular scale
+        let sx = 2.0;
+        let sy = 3.0;
+        let pivot = Vec2::new(0.0, 0.0);
+        let scale_around = Mat3::scale_around_point(sx, sy, pivot);
+        let scale_normal = Mat3::scale(sx, sy);
+
+        assert!(scale_around.near(scale_normal, 1e-6));
+    }
+
+    #[test]
+    fn scale_around_point_center() {
+        // Scale around point (100, 100)
+        let sx = 2.0;
+        let sy = 2.0;
+        let pivot = Vec2::new(100.0, 100.0);
+        let matrix = Mat3::scale_around_point(sx, sy, pivot);
+
+        // Point at pivot should stay at pivot
+        let pivot_point = Vec3::new(pivot.x, pivot.y, 1.0);
+        let transformed_pivot = matrix * pivot_point;
+        assert!((transformed_pivot.x - pivot.x).abs() < 1e-6);
+        assert!((transformed_pivot.y - pivot.y).abs() < 1e-6);
+
+        // Point at (110, 100) should scale to (120, 100)
+        // Distance from pivot doubles: 10 -> 20
+        let point = Vec3::new(110.0, 100.0, 1.0);
+        let transformed = matrix * point;
+        assert!((transformed.x - 120.0).abs() < 1e-5);
+        assert!((transformed.y - 100.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn scale_around_point_non_uniform() {
+        // Non-uniform scale around point
+        let sx = 2.0;
+        let sy = 3.0;
+        let pivot = Vec2::new(50.0, 50.0);
+        let matrix = Mat3::scale_around_point(sx, sy, pivot);
+
+        // Pivot should remain unchanged
+        let pivot_point = Vec3::new(pivot.x, pivot.y, 1.0);
+        let transformed_pivot = matrix * pivot_point;
+        assert!((transformed_pivot.x - pivot.x).abs() < 1e-6);
+        assert!((transformed_pivot.y - pivot.y).abs() < 1e-6);
+
+        // Point at (60, 50) should scale to (70, 50)
+        // X: distance 10 * 2 = 20, so 50 + 20 = 70
+        // Y: distance 0 * 3 = 0, so 50 + 0 = 50
+        let point = Vec3::new(60.0, 50.0, 1.0);
+        let transformed = matrix * point;
+        assert!((transformed.x - 70.0).abs() < 1e-5);
+        assert!((transformed.y - 50.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn scale_around_point_zero_scale() {
+        // Zero scale should collapse everything to pivot
+        let pivot = Vec2::new(100.0, 100.0);
+        let matrix = Mat3::scale_around_point(0.0, 0.0, pivot);
+
+        let test_point = Vec3::new(200.0, 150.0, 1.0);
+        let transformed = matrix * test_point;
+
+        // All points should collapse to pivot
+        assert!((transformed.x - pivot.x).abs() < 1e-6);
+        assert!((transformed.y - pivot.y).abs() < 1e-6);
+    }
+
+    #[test]
+    fn scale_around_point_identity() {
+        // Scale of 1.0 should be identity
+        let pivot = Vec2::new(100.0, 100.0);
+        let matrix = Mat3::scale_around_point(1.0, 1.0, pivot);
+
+        assert!(matrix.near(Mat3::IDENTITY, 1e-6));
+    }
+
+    #[test]
+    fn scale_around_point_negative() {
+        // Negative scale should flip around pivot
+        let sx = -1.0;
+        let sy = -1.0;
+        let pivot = Vec2::new(100.0, 100.0);
+        let matrix = Mat3::scale_around_point(sx, sy, pivot);
+
+        // Pivot should remain unchanged
+        let pivot_point = Vec3::new(pivot.x, pivot.y, 1.0);
+        let transformed_pivot = matrix * pivot_point;
+        assert!((transformed_pivot.x - pivot.x).abs() < 1e-6);
+        assert!((transformed_pivot.y - pivot.y).abs() < 1e-6);
+
+        // Point at (110, 110) should flip to (90, 90)
+        let point = Vec3::new(110.0, 110.0, 1.0);
+        let transformed = matrix * point;
+        assert!((transformed.x - 90.0).abs() < 1e-5);
+        assert!((transformed.y - 90.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn rotate_and_scale_around_same_point() {
+        use std::f32::consts::PI;
+
+        // Combine rotation and scale around same pivot
+        let pivot = Vec2::new(100.0, 100.0);
+        let rotate = Mat3::rotate_around_point(PI / 4.0, pivot);
+        let scale = Mat3::scale_around_point(2.0, 2.0, pivot);
+        let combined = rotate * scale;
+
+        // Pivot should still be unchanged
+        let pivot_point = Vec3::new(pivot.x, pivot.y, 1.0);
+        let transformed_pivot = combined * pivot_point;
+        assert!((transformed_pivot.x - pivot.x).abs() < 1e-5);
+        assert!((transformed_pivot.y - pivot.y).abs() < 1e-5);
     }
 
     #[test]

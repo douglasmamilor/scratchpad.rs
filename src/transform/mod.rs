@@ -1,4 +1,4 @@
-use crate::math::Mat3;
+use crate::math::{Mat3, Vec2};
 
 pub struct TransformStack {
     stack: Vec<Mat3>,
@@ -38,8 +38,16 @@ impl TransformStack {
         self.mul(Mat3::rotate(angle));
     }
 
+    pub fn rotate_around_point(&mut self, angle: f32, pivot: Vec2) {
+        self.mul(Mat3::rotate_around_point(angle, pivot));
+    }
+
     pub fn scale(&mut self, sx: f32, sy: f32) {
         self.mul(Mat3::scale(sx, sy));
+    }
+
+    pub fn scale_around_point(&mut self, sx: f32, sy: f32, pivot: Vec2) {
+        self.mul(Mat3::scale_around_point(sx, sy, pivot));
     }
 }
 

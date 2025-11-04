@@ -1,7 +1,7 @@
 mod viewport;
 
-use crate::math::{Mat3, Point2, Rect, Vec3};
 use crate::math::space::{ScreenPoint, WorldPoint};
+use crate::math::{Mat3, Point2, Rect, Vec3};
 
 pub struct Camera {
     // Position in world space. A cameras poistion is the point it is **centred on**.
