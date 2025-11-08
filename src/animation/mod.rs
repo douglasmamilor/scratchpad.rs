@@ -1,6 +1,8 @@
 mod lerp;
+mod easing;
 
 pub use lerp::Lerp;
+pub use easing::*;
 
 pub struct Animation<T> {
     start: T,
