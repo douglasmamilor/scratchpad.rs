@@ -64,13 +64,16 @@ impl Camera {
         WorldPoint::from_point2(world)
     }
 
-    // Get the view matrix (for use with TransformStack)
+    // Get the view matrix (for use with TransformStack). Applied from right to left.
     pub fn view_matrix(&self) -> Mat3 {
         // Column-major order
         Mat3::translate(self.viewport.width / 2.0, self.viewport.height / 2.0) // move camera origin to center of viewport
         * Mat3::scale(1.0/self.zoom, 1.0/self.zoom) // scale world opposite to camera zoom
         * Mat3::rotate(-self.rotation) // rotate world opposite to camera rotation
         * Mat3::translate(-self.position.x, -self.position.y) // move world based on camera pos
+        // These two invert the framebuffers space by flipping y so y+ is up when rendering to the screen
+        * Mat3::translate(0.0, self.viewport.height) // move origin to bottom-left
+        * Mat3::scale(1.0, -1.0) // invert y
     }
 
     // Camera movement helpers
