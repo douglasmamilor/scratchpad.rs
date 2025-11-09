@@ -182,9 +182,9 @@ mod tests {
         let world_point = Point2::new(0.0, 0.0);
         let screen_point = camera.world_to_screen(world_point);
 
-        // World origin should map to viewport center (with Y-flip: 400, 900)
+        // World origin should map to viewport center (with Y-flip: 400, 300)
         assert!((screen_point.x - 400.0).abs() < 1e-5);
-        assert!((screen_point.y - 900.0).abs() < 1e-5);
+        assert!((screen_point.y - 300.0).abs() < 1e-5);
     }
 
     #[test]
@@ -196,9 +196,9 @@ mod tests {
         let world_origin = Point2::new(0.0, 0.0);
         let screen_point = camera.world_to_screen(world_origin);
 
-        // Default viewport is 800x600, with Y-flip: world (0, 0) -> screen (400, 900)
+        // Default viewport is 800x600, with Y-flip: world (0, 0) -> screen (400, 300)
         assert!((screen_point.x - 400.0).abs() < 1e-5);
-        assert!((screen_point.y - 900.0).abs() < 1e-5);
+        assert!((screen_point.y - 300.0).abs() < 1e-5);
     }
 
     #[test]
@@ -206,11 +206,11 @@ mod tests {
         let viewport = Rect::new(0.0, 0.0, 800.0, 600.0);
         let camera = Camera::default(viewport);
 
-        // Test world origin maps to screen (with Y-flip: 400, 900)
+        // Test world origin maps to screen center (with Y-flip: 400, 300)
         let world_origin = Point2::new(0.0, 0.0);
         let screen_point = camera.world_to_screen(world_origin);
         assert!((screen_point.x - 400.0).abs() < 1e-5);
-        assert!((screen_point.y - 900.0).abs() < 1e-5);
+        assert!((screen_point.y - 300.0).abs() < 1e-5);
     }
 
     #[test]
@@ -223,7 +223,7 @@ mod tests {
         let world_point = Point2::new(100.0, 50.0);
         let screen_point = camera.world_to_screen(world_point);
         assert!((screen_point.x - 400.0).abs() < 1e-5);
-        assert!((screen_point.y - 800.0).abs() < 1e-5); // With Y-flip: (400, 800)
+        assert!((screen_point.y - 300.0).abs() < 1e-5); // With Y-flip: (400, 300)
     }
 
     #[test]
@@ -236,9 +236,9 @@ mod tests {
         let screen_point = camera.world_to_screen(world_point);
 
         // Screen center is (400, 300), world (100, 100) with 2x zoom scales to (50, 50) relative to origin
-        // After Y-flip transformation: (450, 550)
+        // After Y-flip: world Y+100 becomes screen Y-50 from center, so (450, 250)
         assert!((screen_point.x - 450.0).abs() < 1e-5);
-        assert!((screen_point.y - 550.0).abs() < 1e-5);
+        assert!((screen_point.y - 250.0).abs() < 1e-5);
     }
 
     #[test]
@@ -251,9 +251,9 @@ mod tests {
         let screen_point = camera.world_to_screen(world_point);
 
         // After 90-degree rotation: (100, 0) -> (0, -100) relative to origin
-        // With Y-flip transformation: (1000, 200)
-        assert!((screen_point.x - 1000.0).abs() < 1e-5);
-        assert!((screen_point.y - 200.0).abs() < 1e-4); // Slightly increased tolerance for floating point precision
+        // Screen center is (400, 300), with Y-flip: world Y-100 becomes screen Y+100 from center, so (400, 400)
+        assert!((screen_point.x - 400.0).abs() < 1e-5);
+        assert!((screen_point.y - 400.0).abs() < 1e-4); // Slightly increased tolerance for floating point precision
     }
 
     #[test]
@@ -261,13 +261,11 @@ mod tests {
         let viewport = Rect::new(0.0, 0.0, 800.0, 600.0);
         let camera = Camera::default(viewport);
 
-        // Screen center (400, 300) should map to world point
-        // With Y-flip, screen (400, 300) maps to world (0, 600) approximately
+        // Screen center (400, 300) should map to world origin (0, 0)
         let screen_center = Point2::new(400.0, 300.0);
         let world_point = camera.screen_to_world(screen_center);
-        // Screen (400, 300) is offset from the flipped origin
         assert!((world_point.x - 0.0).abs() < 1e-5);
-        assert!((world_point.y - 600.0).abs() < 1e-5);
+        assert!((world_point.y - 0.0).abs() < 1e-5);
     }
 
     #[test]
@@ -325,15 +323,16 @@ mod tests {
         let world_origin = Point2::new(0.0, 0.0);
         let screen_center_initial = camera.world_to_screen(world_origin);
         assert!((screen_center_initial.x - 400.0).abs() < 1e-5);
+        assert!((screen_center_initial.y - 300.0).abs() < 1e-5);
 
-        // Translate camera
+        // Translate camera by (50, 25) - camera moves to (50, 25) in world
         camera.translate(Point2::new(50.0, 25.0));
 
-        // Now world origin should appear offset
-        // With Y-flip: moving camera right+up means world origin appears left+down on screen
+        // Now world origin (0, 0) is at (-50, -25) relative to camera
+        // With Y-flip: world Y-25 becomes screen Y+25 from center
         let screen_center_after = camera.world_to_screen(world_origin);
         assert!((screen_center_after.x - 350.0).abs() < 1e-5); // Moved left by 50
-        assert!((screen_center_after.y - 875.0).abs() < 1e-5); // Moved down by 25 from 900: 900 - 25 = 875
+        assert!((screen_center_after.y - 325.0).abs() < 1e-5); // Moved down by 25: 300 + 25 = 325
     }
 
     #[test]
@@ -458,13 +457,14 @@ mod tests {
         camera.translate(Point2::new(10.0, 20.0));
         camera.translate(Point2::new(5.0, 10.0));
 
-        // Position should be accumulated
+        // Position should be accumulated: camera is now at (15, 30)
         let world_origin = Point2::new(0.0, 0.0);
         let screen_point = camera.world_to_screen(world_origin);
 
-        // World origin should appear at (400 - 15, 900 - 30) = (385, 870) with Y-flip
-        assert!((screen_point.x - 385.0).abs() < 1e-5);
-        assert!((screen_point.y - 870.0).abs() < 1e-5);
+        // World origin is at (-15, -30) relative to camera
+        // With Y-flip: world Y-30 becomes screen Y+30 from center
+        assert!((screen_point.x - 385.0).abs() < 1e-5); // 400 - 15 = 385
+        assert!((screen_point.y - 330.0).abs() < 1e-5); // 300 + 30 = 330
     }
 
     #[test]
@@ -493,12 +493,12 @@ mod tests {
         let screen1 = camera1.world_to_screen(world_origin);
         let screen2 = camera2.world_to_screen(world_origin);
 
-        // Both should map to their respective viewport centers (with Y-flip)
-        assert!((screen1.x - 400.0).abs() < 1e-5);
-        assert!((screen1.y - 900.0).abs() < 1e-5); // 300 + 600 = 900
+        // Both should map to their respective viewport centers
+        assert!((screen1.x - 400.0).abs() < 1e-5); // 800/2 = 400
+        assert!((screen1.y - 300.0).abs() < 1e-5); // 600/2 = 300
 
-        assert!((screen2.x - 960.0).abs() < 1e-5);
-        assert!((screen2.y - 1620.0).abs() < 1e-5); // 540 + 1080 = 1620
+        assert!((screen2.x - 960.0).abs() < 1e-5); // 1920/2 = 960
+        assert!((screen2.y - 540.0).abs() < 1e-5); // 1080/2 = 540
     }
 
     #[test]
@@ -510,9 +510,10 @@ mod tests {
         let screen_point = camera.world_to_screen_space(world_point);
 
         // Verify type safety - these are different types
-        // With Y-flip: world (100, 50) -> screen (500, 850) based on transformation
-        assert_eq!(screen_point.x(), 500.0); // world 100 + viewport center 400
-        assert_eq!(screen_point.y(), 850.0); // world 50 with Y-flip transformation
+        // Screen center is (400, 300), world (100, 50) relative to camera
+        // With Y-flip: world Y+50 becomes screen Y-50 from center
+        assert_eq!(screen_point.x(), 500.0); // 400 + 100 = 500
+        assert_eq!(screen_point.y(), 250.0); // 300 - 50 = 250
     }
 
     #[test]
@@ -520,13 +521,14 @@ mod tests {
         let viewport = Rect::new(0.0, 0.0, 800.0, 600.0);
         let camera = Camera::new(Point2::new(0.0, 0.0), 1.0, 0.0, viewport);
 
-        // Screen (500, 300) with Y-flip maps to world (100, 600)
+        // Screen (500, 300) is at center (400, 300) + (100, 0)
+        // With Y-flip: screen Y 0 (at center) means world Y 0
         let screen_point = ScreenPoint::new(500.0, 300.0);
         let world_point = camera.screen_to_world_space(screen_point);
 
-        // Should convert back correctly
+        // Should convert back correctly: world (100, 0)
         assert_eq!(world_point.x(), 100.0);
-        assert_eq!(world_point.y(), 600.0);
+        assert_eq!(world_point.y(), 0.0);
     }
 
     #[test]
@@ -609,9 +611,9 @@ mod tests {
         // Verify it affects coordinate conversion
         let world_origin = Point2::new(0.0, 0.0);
         let screen_point = camera.world_to_screen(world_origin);
-        // Should now map to new viewport center (960, 1620) with Y-flip
-        assert!((screen_point.x - 960.0).abs() < 1e-5);
-        assert!((screen_point.y - 1620.0).abs() < 1e-5); // 540 + 1080 = 1620
+        // Should now map to new viewport center (960, 540)
+        assert!((screen_point.x - 960.0).abs() < 1e-5); // 1920/2 = 960
+        assert!((screen_point.y - 540.0).abs() < 1e-5); // 1080/2 = 540
     }
 
     #[test]
