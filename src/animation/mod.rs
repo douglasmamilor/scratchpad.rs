@@ -1,8 +1,10 @@
-mod lerp;
 mod easing;
+mod keyframe;
+mod lerp;
 
-pub use lerp::Lerp;
 pub use easing::*;
+pub use keyframe::*;
+pub use lerp::Lerp;
 
 pub struct Animation<T> {
     start: T,
@@ -104,10 +106,10 @@ mod tests {
     fn animation_progress() {
         let mut anim = Animation::new(0.0, 100.0, 2.0);
         assert_eq!(anim.progress(), 0.0);
-        
+
         anim.update(1.0);
         assert_eq!(anim.progress(), 0.5);
-        
+
         anim.update(1.0);
         assert_eq!(anim.progress(), 1.0);
         assert!(anim.is_complete());
@@ -116,12 +118,12 @@ mod tests {
     #[test]
     fn animation_value_interpolation() {
         let mut anim = Animation::new(0.0, 100.0, 2.0);
-        
+
         assert_eq!(anim.value(), 0.0);
-        
+
         anim.update(1.0);
         assert!((anim.value() - 50.0).abs() < 1e-6);
-        
+
         anim.update(1.0);
         assert_eq!(anim.value(), 100.0);
     }
@@ -130,13 +132,13 @@ mod tests {
     fn animation_completion() {
         let mut anim = Animation::new(0.0, 100.0, 2.0);
         assert!(!anim.is_complete());
-        
+
         anim.update(1.0);
         assert!(!anim.is_complete());
-        
+
         anim.update(1.0);
         assert!(anim.is_complete());
-        
+
         // Updating past duration should not change completion
         anim.update(1.0);
         assert!(anim.is_complete());
@@ -149,7 +151,7 @@ mod tests {
         anim.update(2.0);
         assert!(anim.is_complete());
         assert_eq!(anim.value(), 100.0);
-        
+
         anim.reset();
         assert!(!anim.is_complete());
         assert_eq!(anim.elapsed(), 0.0);
@@ -158,19 +160,15 @@ mod tests {
 
     #[test]
     fn animation_vec2_interpolation() {
-        let mut anim = Animation::new(
-            Vec2::new(0.0, 0.0),
-            Vec2::new(100.0, 200.0),
-            2.0,
-        );
-        
+        let mut anim = Animation::new(Vec2::new(0.0, 0.0), Vec2::new(100.0, 200.0), 2.0);
+
         assert_eq!(anim.value(), Vec2::new(0.0, 0.0));
-        
+
         anim.update(1.0);
         let value = anim.value();
         assert!((value.x - 50.0).abs() < 1e-6);
         assert!((value.y - 100.0).abs() < 1e-6);
-        
+
         anim.update(1.0);
         assert_eq!(anim.value(), Vec2::new(100.0, 200.0));
     }
@@ -198,7 +196,7 @@ mod tests {
         }
 
         let mut anim = Animation::with_easing(0.0, 100.0, 2.0, ease_in_quad);
-        
+
         // At 50% time, with ease-in, should be less than 50% value
         anim.update(1.0);
         let value = anim.value();
@@ -219,29 +217,29 @@ mod tests {
         let mut anim = Animation::new(0.0, 100.0, 2.0);
         anim.update(1.0);
         let linear_value = anim.value(); // Should be 50.0 with linear
-        
+
         anim.reset();
         anim.set_easing(ease_in);
         anim.update(1.0);
         let ease_in_value = anim.value(); // Should be less than 50.0
-        
+
         assert!(ease_in_value < linear_value);
-        
+
         anim.reset();
         anim.set_easing(ease_out);
         anim.update(1.0);
         let ease_out_value = anim.value(); // Should be more than 50.0
-        
+
         assert!(ease_out_value > linear_value);
     }
 
     #[test]
     fn animation_progress_clamping() {
         let mut anim = Animation::new(0.0, 100.0, 2.0);
-        
+
         // Update way past duration
         anim.update(10.0);
-        
+
         assert_eq!(anim.progress(), 1.0);
         assert_eq!(anim.value(), 100.0);
         assert!(anim.is_complete());
@@ -250,12 +248,12 @@ mod tests {
     #[test]
     fn animation_small_delta_times() {
         let mut anim = Animation::new(0.0, 100.0, 2.0);
-        
+
         // Update with many small steps (200 * 0.01 = 2.0)
         for _ in 0..200 {
             anim.update(0.01);
         }
-        
+
         // Due to floating point precision, might be slightly less than 2.0
         // But should be very close to complete
         assert!(anim.elapsed() >= 1.99);
@@ -265,29 +263,25 @@ mod tests {
     #[test]
     fn animation_f32_negative_values() {
         let mut anim = Animation::new(-100.0, 100.0, 2.0);
-        
+
         assert_eq!(anim.value(), -100.0);
-        
+
         anim.update(1.0);
         assert!((anim.value() - 0.0).abs() < 1e-6);
-        
+
         anim.update(1.0);
         assert_eq!(anim.value(), 100.0);
     }
 
     #[test]
     fn animation_vec2_negative_values() {
-        let mut anim = Animation::new(
-            Vec2::new(-50.0, -100.0),
-            Vec2::new(50.0, 100.0),
-            2.0,
-        );
-        
+        let mut anim = Animation::new(Vec2::new(-50.0, -100.0), Vec2::new(50.0, 100.0), 2.0);
+
         assert_eq!(anim.value(), Vec2::new(-50.0, -100.0));
-        
+
         anim.update(1.0);
         assert_eq!(anim.value(), Vec2::new(0.0, 0.0));
-        
+
         anim.update(1.0);
         assert_eq!(anim.value(), Vec2::new(50.0, 100.0));
     }
@@ -295,7 +289,7 @@ mod tests {
     #[test]
     fn animation_multiple_resets() {
         let mut anim = Animation::new(0.0, 100.0, 2.0);
-        
+
         for _ in 0..5 {
             anim.update(2.0);
             assert!(anim.is_complete());

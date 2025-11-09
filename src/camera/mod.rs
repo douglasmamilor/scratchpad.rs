@@ -4,7 +4,7 @@ use crate::math::space::{ScreenPoint, WorldPoint};
 use crate::math::{Mat3, Point2, Rect, Vec3};
 
 pub struct Camera {
-    // Position in world space. A cameras poistion is the point it is **centred on**.
+    // Position in world space. A cameras position is the point it is **centred on**.
     position: Point2,
     // Zoom level (1.0 = normal, >1.0 = zoomed in, <1.0 = zoomed out)
     zoom: f32,
