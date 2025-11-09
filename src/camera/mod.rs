@@ -64,16 +64,18 @@ impl Camera {
         WorldPoint::from_point2(world)
     }
 
-    // Get the view matrix (for use with TransformStack). Applied from right to left.
+    // Get the view matrix (for use with TransformStack).
+    // Applied from right to left since this is column major order
     pub fn view_matrix(&self) -> Mat3 {
-        // Column-major order
-        Mat3::translate(self.viewport.width / 2.0, self.viewport.height / 2.0) // move camera origin to center of viewport
+        // Apply Y-flip in screen space and then reposition to viewport. This needs to be applied
+        // AFTER the transformations have moved everything into screen space.
+        Mat3::translate(0.0, self.viewport.height)  // y = -y + height
+        * Mat3::scale(1.0, -1.0)
+        // Viewport transformations get applied first
+        * Mat3::translate(self.viewport.width / 2.0, self.viewport.height / 2.0) // move camera origin to center of viewport
         * Mat3::scale(1.0/self.zoom, 1.0/self.zoom) // scale world opposite to camera zoom
         * Mat3::rotate(-self.rotation) // rotate world opposite to camera rotation
         * Mat3::translate(-self.position.x, -self.position.y) // move world based on camera pos
-        // These two invert the framebuffers space by flipping y so y+ is up when rendering to the screen
-        * Mat3::translate(0.0, self.viewport.height) // move origin to bottom-left
-        * Mat3::scale(1.0, -1.0) // invert y
     }
 
     // Camera movement helpers
@@ -119,6 +121,46 @@ impl Default for Camera {
 mod tests {
     use super::*;
     use std::f32::consts::PI;
+
+    #[test]
+    fn y_is_up_validation() {
+        // Simple targeted test to verify Y is pointing up in world space
+        let viewport = Rect::new(0.0, 0.0, 800.0, 600.0);
+        let camera = Camera::default(viewport);
+
+        // Get screen center (where world origin maps to)
+        let world_origin = Point2::new(0.0, 0.0);
+        let screen_center = camera.world_to_screen(world_origin);
+
+        // Test 1: World point above origin (Y+ = up) should map to screen Y BELOW center
+        // In world: Y+ means "up", in screen: Y+ means "down"
+        // So after Y-flip: world Y+ should map to screen Y- (lower Y value)
+        let world_above = Point2::new(0.0, 100.0); // 100 units UP in world
+        let screen_above = camera.world_to_screen(world_above);
+        
+        assert!(screen_above.y < screen_center.y, 
+                "Y-flip validation failed: World Y+100 (up) should map to screen Y BELOW center. \
+                 Got: screen_above.y={}, screen_center.y={}", 
+                screen_above.y, screen_center.y);
+        
+        // Test 2: World point below origin (Y- = down) should map to screen Y ABOVE center
+        let world_below = Point2::new(0.0, -100.0); // 100 units DOWN in world
+        let screen_below = camera.world_to_screen(world_below);
+        
+        assert!(screen_below.y > screen_center.y,
+                "Y-flip validation failed: World Y-100 (down) should map to screen Y ABOVE center. \
+                 Got: screen_below.y={}, screen_center.y={}",
+                screen_below.y, screen_center.y);
+
+        // Test 3: Verify the distance is correct (100 world units = 100 screen pixels)
+        let distance_above = screen_center.y - screen_above.y;
+        let distance_below = screen_below.y - screen_center.y;
+        
+        assert!((distance_above - 100.0).abs() < 1e-5,
+                "Y-flip validation failed: World Y+100 should be exactly 100 pixels from center. Got: {}", distance_above);
+        assert!((distance_below - 100.0).abs() < 1e-5,
+                "Y-flip validation failed: World Y-100 should be exactly 100 pixels from center. Got: {}", distance_below);
+    }
 
     #[test]
     fn construction() {
@@ -325,8 +367,9 @@ mod tests {
         let world_point = Point2::new(100.0, 100.0);
         let initial_screen = camera.world_to_screen(world_point);
         let initial_center = camera.world_to_screen(Point2::new(0.0, 0.0));
-        let initial_dist_from_center =
-            ((initial_screen.x - initial_center.x).powi(2) + (initial_screen.y - initial_center.y).powi(2)).sqrt();
+        let initial_dist_from_center = ((initial_screen.x - initial_center.x).powi(2)
+            + (initial_screen.y - initial_center.y).powi(2))
+        .sqrt();
 
         // Zoom in by 2x
         camera.zoom_by(2.0);
@@ -334,13 +377,15 @@ mod tests {
         // Point should appear closer to center (half distance)
         let zoomed_screen = camera.world_to_screen(world_point);
         let zoomed_center = camera.world_to_screen(Point2::new(0.0, 0.0));
-        let zoomed_dist_from_center =
-            ((zoomed_screen.x - zoomed_center.x).powi(2) + (zoomed_screen.y - zoomed_center.y).powi(2)).sqrt();
+        let zoomed_dist_from_center = ((zoomed_screen.x - zoomed_center.x).powi(2)
+            + (zoomed_screen.y - zoomed_center.y).powi(2))
+        .sqrt();
 
         assert!(
             (zoomed_dist_from_center - initial_dist_from_center / 2.0).abs() < 1e-5,
-            "Zoom should halve the distance from center: initial={}, zoomed={}", 
-            initial_dist_from_center, zoomed_dist_from_center
+            "Zoom should halve the distance from center: initial={}, zoomed={}",
+            initial_dist_from_center,
+            zoomed_dist_from_center
         );
     }
 
@@ -354,22 +399,30 @@ mod tests {
         let world_point = Point2::new(100.0, 100.0);
         let screen_2x = camera.world_to_screen(world_point);
         let center_2x = camera.world_to_screen(Point2::new(0.0, 0.0));
-        let dist_2x = ((screen_2x.x - center_2x.x).powi(2) + (screen_2x.y - center_2x.y).powi(2)).sqrt();
+        let dist_2x =
+            ((screen_2x.x - center_2x.x).powi(2) + (screen_2x.y - center_2x.y).powi(2)).sqrt();
 
         camera.zoom_by(1.5); // Now at 3x total
         let screen_3x = camera.world_to_screen(world_point);
         let center_3x = camera.world_to_screen(Point2::new(0.0, 0.0));
-        let dist_3x = ((screen_3x.x - center_3x.x).powi(2) + (screen_3x.y - center_3x.y).powi(2)).sqrt();
-        
+        let dist_3x =
+            ((screen_3x.x - center_3x.x).powi(2) + (screen_3x.y - center_3x.y).powi(2)).sqrt();
+
         // With higher zoom, the point should be closer to center (smaller distance)
         // Note: zoom scales world down, so higher zoom = smaller world units = closer to center
-        assert!(dist_3x < dist_2x, 
-                "3x zoom dist ({}) should be smaller than 2x zoom dist ({})", dist_3x, dist_2x);
+        assert!(
+            dist_3x < dist_2x,
+            "3x zoom dist ({}) should be smaller than 2x zoom dist ({})",
+            dist_3x,
+            dist_2x
+        );
 
         camera.zoom_by(0.5); // Now at 1.5x total
         let screen_1_5x = camera.world_to_screen(world_point);
         let center_1_5x = camera.world_to_screen(Point2::new(0.0, 0.0));
-        let dist_1_5x = ((screen_1_5x.x - center_1_5x.x).powi(2) + (screen_1_5x.y - center_1_5x.y).powi(2)).sqrt();
+        let dist_1_5x = ((screen_1_5x.x - center_1_5x.x).powi(2)
+            + (screen_1_5x.y - center_1_5x.y).powi(2))
+        .sqrt();
         // 1.5x should be further from center than 3x (lower zoom = larger distance)
         assert!(dist_1_5x > dist_3x);
     }
