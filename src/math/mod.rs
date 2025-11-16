@@ -1,3 +1,4 @@
+pub mod barycentric;
 pub mod ivec2;
 pub mod mat2;
 pub mod mat3;
@@ -7,6 +8,7 @@ pub mod space;
 pub mod vec2;
 pub mod vec3;
 
+pub use barycentric::{BarycentricCoords, barycentric, is_point_in_triangle};
 pub use ivec2::IVec2;
 pub use mat2::Mat2;
 pub use mat3::{AffineDecomposition, Decomposition, Mat3};
