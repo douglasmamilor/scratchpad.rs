@@ -131,12 +131,9 @@ impl<'a> Renderer<'a> {
 
         for y in y_start..y_end {
             let (xa, xb) = if x1 <= x2 { (x1, x2) } else { (x2, x1) };
-            self.draw_line_aa(
-                Vec2::new(xa, y as f32),
-                Vec2::new(xb, y as f32),
-                color,
-                Mat3::IDENTITY,
-            );
+            let x_start = (xa + 0.5).floor() as i32;
+            let x_end = (xb + 0.5).floor() as i32;
+            self.hspan(y, x_start, x_end, color);
             x1 += inv_slope_1;
             x2 += inv_slope_2;
         }
@@ -160,12 +157,9 @@ impl<'a> Renderer<'a> {
 
         for y in y_start..y_end {
             let (xa, xb) = if x1 <= x2 { (x1, x2) } else { (x2, x1) };
-            self.draw_line_aa(
-                Vec2::new(xa, y as f32),
-                Vec2::new(xb, y as f32),
-                color,
-                Mat3::IDENTITY,
-            );
+            let x_start = (xa + 0.5).floor() as i32;
+            let x_end = (xb + 0.5).floor() as i32;
+            self.hspan(y, x_start, x_end, color);
             x1 += inv_slope_1;
             x2 += inv_slope_2;
         }
