@@ -1,6 +1,6 @@
 use super::Renderer;
 use crate::color::Color;
-use crate::math::{Mat3, vec2::Vec2};
+use crate::math::{Mat3, barycentric, vec2::Vec2};
 
 impl<'a> Renderer<'a> {
     /// Draw a triangle outline using three vertices.
@@ -37,6 +37,73 @@ impl<'a> Renderer<'a> {
         self.draw_line_aa(c, a, color, model);
     }
 
+    #[allow(clippy::too_many_arguments)]
+    pub fn fill_triangle_colored(
+        &mut self,
+        a: Vec2,
+        b: Vec2,
+        c: Vec2,
+        color_a: Color,
+        color_b: Color,
+        color_c: Color,
+        model: Mat3,
+    ) {
+        // Transform vertices to screen space
+        let a_s = model.transform_vec2(a);
+        let b_s = model.transform_vec2(b);
+        let c_s = model.transform_vec2(c);
+
+        // Bounding box of the triangle
+        let min_x = a_s.x.min(b_s.x).min(c_s.x).floor() as i32;
+        let max_x = a_s.x.max(b_s.x).max(c_s.x).ceil() as i32;
+        let min_y = a_s.y.min(b_s.y).min(c_s.y).floor() as i32;
+        let max_y = a_s.y.max(b_s.y).max(c_s.y).ceil() as i32;
+
+        // Precompute constants for incremental barycentric interpolation
+        let v0 = b_s - a_s;
+        let v1 = c_s - a_s;
+        let denom = v0.cross(v1);
+        if denom.abs() < f32::EPSILON {
+            return; // degenerate triangle
+        }
+        let inv_denom = 1.0 / denom;
+
+        // Loop over each scanline
+        for y in min_y..=max_y {
+            // Compute barycentric coordinates at the leftmost pixel of this scanline
+            let y_f = y as f32 + 0.5; // center of pixel
+            let v_start = ((Vec2::new(min_x as f32 + 0.5, y_f) - a_s).cross(v1)) * inv_denom;
+            let w_start = (v0.cross(Vec2::new(min_x as f32 + 0.5, y_f) - a_s)) * inv_denom;
+
+            // Compute delta for horizontal movement (incremental barycentric)
+            // v(x+1) = v(x) + (v0.y * inv_denom)
+            // w(x+1) = w(x) - (v1.y * inv_denom)
+            let delta_v = v1.y * inv_denom;
+            let delta_w = -v0.y * inv_denom;
+
+            let mut v = v_start;
+            let mut w = w_start;
+
+            for x in min_x..=max_x {
+                let u = 1.0 - v - w;
+
+                // Check if pixel is inside triangle
+                if u >= 0.0 && v >= 0.0 && w >= 0.0 {
+                    let color = barycentric::interpolate_color(
+                        &barycentric::BarycentricCoords { u, v, w },
+                        color_a,
+                        color_b,
+                        color_c,
+                    );
+                    self.set_pixel((x, y), color);
+                }
+
+                // Increment barycentric coordinates for next pixel
+                v += delta_v;
+                w += delta_w;
+            }
+        }
+    }
     /// Fill a triangle using a scanline algorithm.
     ///
     /// O(height) in the triangle’s vertical span. Degenerate (collinear) triangles are skipped.
