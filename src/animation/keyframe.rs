@@ -2,20 +2,20 @@ use crate::animation::easing::linear as LinearEasing;
 use crate::animation::lerp::Lerp;
 
 /// A single keyframe in an animation timeline
-/// 
+///
 /// Keyframes define a value at a specific time, with optional easing
 /// for the segment leading out from this keyframe.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::Keyframe;
-/// 
+///
 /// // Simple keyframe
 /// let kf = Keyframe::new(1.0, 100.0);
 /// assert_eq!(kf.time, 1.0);
 /// assert_eq!(kf.value, 100.0);
-/// 
+///
 /// // Keyframe with easing
 /// use scratchpad_rs::animation::ease_in_quad;
 /// let kf = Keyframe::with_easing(2.0, 200.0, ease_in_quad);
@@ -29,12 +29,12 @@ pub struct Keyframe<T> {
 
 impl<T> Keyframe<T> {
     /// Create a new keyframe at the given time with the given value
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::Keyframe;
-    /// 
+    ///
     /// let kf: Keyframe<f32> = Keyframe::new(1.5, 42.0);
     /// assert_eq!(kf.time, 1.5);
     /// assert_eq!(kf.value, 42.0);
@@ -48,13 +48,13 @@ impl<T> Keyframe<T> {
     }
 
     /// Create a new keyframe with custom easing for the segment after this keyframe
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::Keyframe;
     /// use scratchpad_rs::animation::ease_out_bounce;
-    /// 
+    ///
     /// let kf = Keyframe::with_easing(2.0, 100.0, ease_out_bounce);
     /// ```
     pub fn with_easing(time: f32, value: T, easing: fn(f32) -> f32) -> Self {
@@ -66,13 +66,13 @@ impl<T> Keyframe<T> {
     }
 
     /// Set the easing function for the segment after this keyframe
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::Keyframe;
     /// use scratchpad_rs::animation::ease_in_cubic;
-    /// 
+    ///
     /// let mut kf: Keyframe<f32> = Keyframe::new(1.0, 50.0);
     /// kf.set_easing_out(ease_in_cubic);
     /// ```
@@ -82,20 +82,20 @@ impl<T> Keyframe<T> {
 }
 
 /// A keyframe-based animation that interpolates between multiple keyframes
-/// 
+///
 /// Supports multiple keyframes at different times, with optional per-segment
 /// easing functions. Can loop or play once.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::KeyFrameAnimation;
-/// 
+///
 /// let mut anim: KeyFrameAnimation<f32> = KeyFrameAnimation::new();
 /// anim.add_keyframe(0.0, 0.0);
 /// anim.add_keyframe(1.0, 100.0);
 /// anim.add_keyframe(2.0, 50.0);
-/// 
+///
 /// anim.play();
 /// anim.update(0.5);
 /// let value = anim.value(); // Interpolated value at time 0.5
@@ -111,12 +111,12 @@ pub struct KeyFrameAnimation<T> {
 
 impl<T: Lerp> KeyFrameAnimation<T> {
     /// Create a new keyframe animation with linear easing
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::KeyFrameAnimation;
-    /// 
+    ///
     /// let _anim = KeyFrameAnimation::<f32>::new();
     /// ```
     pub fn new() -> Self {
@@ -124,13 +124,13 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     }
 
     /// Create a new keyframe animation with a custom default easing function
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::KeyFrameAnimation;
     /// use scratchpad_rs::animation::ease_in_out_cubic;
-    /// 
+    ///
     /// let _anim = KeyFrameAnimation::<f32>::with_easing(ease_in_out_cubic);
     /// ```
     pub fn with_easing(easing: fn(f32) -> f32) -> Self {
@@ -156,15 +156,15 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     }
 
     /// Add a keyframe at the given time with the given value
-    /// 
+    ///
     /// Keyframes are automatically sorted by time. If a keyframe already exists
     /// at the same time, it will be replaced.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::KeyFrameAnimation;
-    /// 
+    ///
     /// let mut anim = KeyFrameAnimation::<f32>::new();
     /// anim.add_keyframe(0.0, 0.0);
     /// anim.add_keyframe(1.0, 100.0);
@@ -176,12 +176,12 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     }
 
     /// Add multiple keyframes at once
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::{KeyFrameAnimation, Keyframe};
-    /// 
+    ///
     /// let mut anim = KeyFrameAnimation::<f32>::new();
     /// anim.add_keyframes(vec![
     ///     Keyframe::new(0.0, 0.0),
@@ -198,12 +198,12 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     }
 
     /// Clear all keyframes
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::KeyFrameAnimation;
-    /// 
+    ///
     /// let mut anim = KeyFrameAnimation::<f32>::new();
     /// anim.add_keyframe(0.0, 0.0);
     /// anim.clear();
@@ -215,12 +215,12 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     }
 
     /// Get the number of keyframes
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::KeyFrameAnimation;
-    /// 
+    ///
     /// let mut anim = KeyFrameAnimation::<f32>::new();
     /// anim.add_keyframe(0.0, 0.0);
     /// anim.add_keyframe(1.0, 100.0);
@@ -231,12 +231,12 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     }
 
     /// Start playing the animation
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::KeyFrameAnimation;
-    /// 
+    ///
     /// let mut anim = KeyFrameAnimation::<f32>::new();
     /// anim.add_keyframe(0.0, 0.0);
     /// anim.add_keyframe(1.0, 100.0);
@@ -248,12 +248,12 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     }
 
     /// Pause the animation (keeps current time)
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::KeyFrameAnimation;
-    /// 
+    ///
     /// let mut anim = KeyFrameAnimation::<f32>::new();
     /// anim.play();
     /// anim.pause();
@@ -264,12 +264,12 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     }
 
     /// Stop the animation and reset to the beginning
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::KeyFrameAnimation;
-    /// 
+    ///
     /// let mut anim = KeyFrameAnimation::<f32>::new();
     /// anim.add_keyframe(0.0, 0.0);
     /// anim.add_keyframe(1.0, 100.0);
@@ -285,12 +285,12 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     }
 
     /// Set whether the animation should loop
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::KeyFrameAnimation;
-    /// 
+    ///
     /// let mut anim = KeyFrameAnimation::<f32>::new();
     /// anim.set_looping(true);
     /// ```
@@ -299,14 +299,14 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     }
 
     /// Update the animation by advancing time
-    /// 
+    ///
     /// Only advances time if the animation is playing. Respects looping behavior.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::KeyFrameAnimation;
-    /// 
+    ///
     /// let mut anim = KeyFrameAnimation::<f32>::new();
     /// anim.add_keyframe(0.0, 0.0);
     /// anim.add_keyframe(1.0, 100.0);
@@ -320,7 +320,7 @@ impl<T: Lerp> KeyFrameAnimation<T> {
 
             if self.is_looping {
                 if self.current_time >= self.duration && self.duration > 0.0 {
-                    self.current_time = self.current_time % self.duration;
+                    self.current_time %= self.duration;
                 }
             } else {
                 self.current_time = self.current_time.min(self.duration);
@@ -329,12 +329,12 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     }
 
     /// Seek to a specific time in the animation
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::KeyFrameAnimation;
-    /// 
+    ///
     /// let mut anim = KeyFrameAnimation::<f32>::new();
     /// anim.add_keyframe(0.0, 0.0);
     /// anim.add_keyframe(2.0, 100.0);
@@ -355,12 +355,12 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     }
 
     /// Get the current time in the animation
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::KeyFrameAnimation;
-    /// 
+    ///
     /// let mut anim = KeyFrameAnimation::<f32>::new();
     /// anim.add_keyframe(0.0, 0.0);
     /// anim.add_keyframe(1.0, 100.0);
@@ -372,14 +372,14 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     }
 
     /// Get the total duration of the animation
-    /// 
+    ///
     /// This is the time of the last keyframe.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::KeyFrameAnimation;
-    /// 
+    ///
     /// let mut anim = KeyFrameAnimation::<f32>::new();
     /// anim.add_keyframe(0.0, 0.0);
     /// anim.add_keyframe(2.5, 100.0);
@@ -390,12 +390,12 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     }
 
     /// Check if the animation is currently playing
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::KeyFrameAnimation;
-    /// 
+    ///
     /// let mut anim = KeyFrameAnimation::<f32>::new();
     /// assert!(!anim.is_playing());
     /// anim.play();
@@ -406,12 +406,12 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     }
 
     /// Check if the animation is set to loop
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::KeyFrameAnimation;
-    /// 
+    ///
     /// let mut anim = KeyFrameAnimation::<f32>::new();
     /// assert!(!anim.is_looping());
     /// anim.set_looping(true);
@@ -422,12 +422,12 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     }
 
     /// Check if the animation has completed (only relevant when not looping)
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::KeyFrameAnimation;
-    /// 
+    ///
     /// let mut anim = KeyFrameAnimation::<f32>::new();
     /// anim.add_keyframe(0.0, 0.0);
     /// anim.add_keyframe(1.0, 100.0);
@@ -440,12 +440,12 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     }
 
     /// Get the progress from 0.0 to 1.0
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::KeyFrameAnimation;
-    /// 
+    ///
     /// let mut anim = KeyFrameAnimation::<f32>::new();
     /// anim.add_keyframe(0.0, 0.0);
     /// anim.add_keyframe(2.0, 100.0);
@@ -467,16 +467,16 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     }
 
     /// Get the current interpolated value
-    /// 
+    ///
     /// # Panics
-    /// 
+    ///
     /// Panics if no keyframes have been added.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use scratchpad_rs::animation::KeyFrameAnimation;
-    /// 
+    ///
     /// let mut anim = KeyFrameAnimation::<f32>::new();
     /// anim.add_keyframe(0.0, 0.0);
     /// anim.add_keyframe(1.0, 100.0);
@@ -923,16 +923,16 @@ mod tests {
         let mut kf0 = Keyframe::new(0.0, 0.0);
         kf0.set_easing_out(ease_in_quad);
         anim.add_keyframes(vec![kf0]);
-        
+
         // Second keyframe uses default linear for segment 1.0 -> 2.0
         anim.add_keyframe(1.0, 100.0);
         anim.add_keyframe(2.0, 200.0);
-        
+
         // Test first segment (with ease-in-quad)
         anim.seek(0.5);
         let value1 = anim.value();
         assert!(value1 < 50.0); // Slower than linear
-        
+
         // Test second segment (with linear)
         anim.seek(1.5);
         let value2 = anim.value();
