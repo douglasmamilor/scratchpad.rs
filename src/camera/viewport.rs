@@ -3,7 +3,7 @@ use crate::math::Rect;
 
 impl Camera {
     /// Calculate viewport with letterboxing (black bars top/bottom)
-    /// 
+    ///
     /// Used when framebuffer is taller than target aspect ratio.
     /// Uses full width, calculates height to match target aspect, centers vertically.
     pub fn calculate_letterbox_viewport(
@@ -26,7 +26,7 @@ impl Camera {
     }
 
     /// Calculate viewport with pillarboxing (black bars left/right)
-    /// 
+    ///
     /// Used when framebuffer is wider than target aspect ratio.
     /// Uses full height, calculates width to match target aspect, centers horizontally.
     pub fn calculate_pillarbox_viewport(
@@ -49,7 +49,7 @@ impl Camera {
     }
 
     /// Calculate viewport that maintains target aspect ratio
-    /// 
+    ///
     /// Automatically chooses letterboxing or pillarboxing based on framebuffer dimensions.
     /// This is the recommended function for most use cases.
     pub fn calculate_fitted_viewport(
@@ -62,10 +62,18 @@ impl Camera {
 
         if framebuffer_aspect > target_aspect_ratio {
             // Framebuffer is wider = need pillarboxing (bars on sides)
-            self.calculate_pillarbox_viewport(target_aspect_ratio, framebuffer_width, framebuffer_height)
+            self.calculate_pillarbox_viewport(
+                target_aspect_ratio,
+                framebuffer_width,
+                framebuffer_height,
+            )
         } else {
             // Framebuffer is taller or equal = need letterboxing (bars top/bottom)
-            self.calculate_letterbox_viewport(target_aspect_ratio, framebuffer_width, framebuffer_height)
+            self.calculate_letterbox_viewport(
+                target_aspect_ratio,
+                framebuffer_width,
+                framebuffer_height,
+            )
         }
     }
 }
@@ -78,7 +86,6 @@ mod tests {
     fn create_test_camera() -> Camera {
         Camera::new(Point2::ZERO, 1.0, 0.0, Rect::new(0.0, 0.0, 800.0, 600.0))
     }
-
 
     #[test]
     fn letterbox_taller_framebuffer() {
@@ -133,7 +140,7 @@ mod tests {
         // Centered horizontally: (1440 - 1920) / 2 = -240 (negative!)
         assert_eq!(viewport.x, -240.0);
         assert_eq!(viewport.y, 0.0);
-        
+
         // Note: This shows why fitted_viewport is important - it chooses the right function
     }
 
@@ -223,7 +230,7 @@ mod tests {
 
         // Test 16:9 on various framebuffer sizes
         let aspect_16_9 = 16.0 / 9.0;
-        
+
         // Standard HD
         let v1 = camera.calculate_fitted_viewport(aspect_16_9, 1920, 1080);
         assert_eq!(v1.width, 1920.0);

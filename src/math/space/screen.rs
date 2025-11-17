@@ -212,7 +212,7 @@ mod tests {
         let p1 = ScreenPoint::new(50.0, 50.0);
         let p2 = ScreenPoint::new(-10.0, 50.0);
         let p3 = ScreenPoint::new(50.0, 1000.0);
-        
+
         assert!(p1.is_in_bounds(800.0, 600.0));
         assert!(!p2.is_in_bounds(800.0, 600.0));
         assert!(!p3.is_in_bounds(800.0, 600.0));
@@ -225,7 +225,7 @@ mod tests {
         let delta = p1 - p2;
         assert_eq!(delta.x(), 50.0);
         assert_eq!(delta.y(), 50.0);
-        
+
         let translated = p2 + delta;
         assert_eq!(translated, p1);
     }
@@ -235,7 +235,7 @@ mod tests {
         let v = ScreenVec2::new(3.0, 4.0);
         assert_eq!(v.len(), 5.0);
         assert_eq!(v.len_squared(), 25.0);
-        
+
         let normalized = v.normalize();
         assert!((normalized.len() - 1.0).abs() < 1e-6);
     }

@@ -137,29 +137,41 @@ mod tests {
         // So after Y-flip: world Y+ should map to screen Y- (lower Y value)
         let world_above = Point2::new(0.0, 100.0); // 100 units UP in world
         let screen_above = camera.world_to_screen(world_above);
-        
-        assert!(screen_above.y < screen_center.y, 
-                "Y-flip validation failed: World Y+100 (up) should map to screen Y BELOW center. \
-                 Got: screen_above.y={}, screen_center.y={}", 
-                screen_above.y, screen_center.y);
-        
+
+        assert!(
+            screen_above.y < screen_center.y,
+            "Y-flip validation failed: World Y+100 (up) should map to screen Y BELOW center. \
+                 Got: screen_above.y={}, screen_center.y={}",
+            screen_above.y,
+            screen_center.y
+        );
+
         // Test 2: World point below origin (Y- = down) should map to screen Y ABOVE center
         let world_below = Point2::new(0.0, -100.0); // 100 units DOWN in world
         let screen_below = camera.world_to_screen(world_below);
-        
-        assert!(screen_below.y > screen_center.y,
-                "Y-flip validation failed: World Y-100 (down) should map to screen Y ABOVE center. \
+
+        assert!(
+            screen_below.y > screen_center.y,
+            "Y-flip validation failed: World Y-100 (down) should map to screen Y ABOVE center. \
                  Got: screen_below.y={}, screen_center.y={}",
-                screen_below.y, screen_center.y);
+            screen_below.y,
+            screen_center.y
+        );
 
         // Test 3: Verify the distance is correct (100 world units = 100 screen pixels)
         let distance_above = screen_center.y - screen_above.y;
         let distance_below = screen_below.y - screen_center.y;
-        
-        assert!((distance_above - 100.0).abs() < 1e-5,
-                "Y-flip validation failed: World Y+100 should be exactly 100 pixels from center. Got: {}", distance_above);
-        assert!((distance_below - 100.0).abs() < 1e-5,
-                "Y-flip validation failed: World Y-100 should be exactly 100 pixels from center. Got: {}", distance_below);
+
+        assert!(
+            (distance_above - 100.0).abs() < 1e-5,
+            "Y-flip validation failed: World Y+100 should be exactly 100 pixels from center. Got: {}",
+            distance_above
+        );
+        assert!(
+            (distance_below - 100.0).abs() < 1e-5,
+            "Y-flip validation failed: World Y-100 should be exactly 100 pixels from center. Got: {}",
+            distance_below
+        );
     }
 
     #[test]

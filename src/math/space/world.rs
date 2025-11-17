@@ -210,7 +210,7 @@ mod tests {
         let delta = p1 - p2;
         assert_eq!(delta.x(), 5.0);
         assert_eq!(delta.y(), 5.0);
-        
+
         let translated = p2 + delta;
         assert_eq!(translated, p1);
     }
@@ -220,7 +220,7 @@ mod tests {
         let v = WorldVec2::new(3.0, 4.0);
         assert_eq!(v.len(), 5.0);
         assert_eq!(v.len_squared(), 25.0);
-        
+
         let normalized = v.normalize();
         assert!((normalized.len() - 1.0).abs() < 1e-6);
     }

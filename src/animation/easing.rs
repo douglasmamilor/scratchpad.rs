@@ -1,12 +1,12 @@
 /// Linear interpolation - no easing applied
-/// 
+///
 /// Returns `t` unchanged, providing constant velocity animation.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::linear;
-/// 
+///
 /// assert_eq!(linear(0.0), 0.0);
 /// assert_eq!(linear(0.5), 0.5);
 /// assert_eq!(linear(1.0), 1.0);
@@ -16,14 +16,14 @@ pub fn linear(t: f32) -> f32 {
 }
 
 /// Quadratic ease-in - starts slow, accelerates
-/// 
+///
 /// Provides a gentle acceleration curve. Good for objects starting from rest.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_quad;
-/// 
+///
 /// assert_eq!(ease_in_quad(0.0), 0.0);
 /// assert!(ease_in_quad(0.5) < 0.5); // Slower than linear
 /// assert_eq!(ease_in_quad(1.0), 1.0);
@@ -33,14 +33,14 @@ pub fn ease_in_quad(t: f32) -> f32 {
 }
 
 /// Quadratic ease-out - starts fast, decelerates
-/// 
+///
 /// Provides a gentle deceleration curve. Good for objects coming to rest.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_out_quad;
-/// 
+///
 /// assert_eq!(ease_out_quad(0.0), 0.0);
 /// assert!(ease_out_quad(0.5) > 0.5); // Faster than linear
 /// assert_eq!(ease_out_quad(1.0), 1.0);
@@ -50,14 +50,14 @@ pub fn ease_out_quad(t: f32) -> f32 {
 }
 
 /// Quadratic ease-in-out - slow start, fast middle, slow end
-/// 
+///
 /// Combines ease-in and ease-out for smooth acceleration and deceleration.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_out_quad;
-/// 
+///
 /// assert_eq!(ease_in_out_quad(0.0), 0.0);
 /// assert_eq!(ease_in_out_quad(1.0), 1.0);
 /// ```
@@ -70,14 +70,14 @@ pub fn ease_in_out_quad(t: f32) -> f32 {
 }
 
 /// Cubic ease-in - stronger acceleration than quadratic
-/// 
+///
 /// More pronounced slow start than ease-in-quad.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::{ease_in_quad, ease_in_cubic};
-/// 
+///
 /// assert_eq!(ease_in_cubic(0.0), 0.0);
 /// assert!(ease_in_cubic(0.5) < ease_in_quad(0.5)); // Even slower
 /// assert_eq!(ease_in_cubic(1.0), 1.0);
@@ -87,14 +87,14 @@ pub fn ease_in_cubic(t: f32) -> f32 {
 }
 
 /// Cubic ease-out - stronger deceleration than quadratic
-/// 
+///
 /// More pronounced slow end than ease-out-quad.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::{ease_out_quad, ease_out_cubic};
-/// 
+///
 /// assert_eq!(ease_out_cubic(0.0), 0.0);
 /// assert!(ease_out_cubic(0.5) > ease_out_quad(0.5)); // Even faster mid-point
 /// assert_eq!(ease_out_cubic(1.0), 1.0);
@@ -104,12 +104,12 @@ pub fn ease_out_cubic(t: f32) -> f32 {
 }
 
 /// Cubic ease-in-out - smooth acceleration and deceleration
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_out_cubic;
-/// 
+///
 /// assert_eq!(ease_in_out_cubic(0.0), 0.0);
 /// assert_eq!(ease_in_out_cubic(1.0), 1.0);
 /// ```
@@ -122,12 +122,12 @@ pub fn ease_in_out_cubic(t: f32) -> f32 {
 }
 
 /// Quartic ease-in - very strong acceleration
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_quart;
-/// 
+///
 /// assert_eq!(ease_in_quart(0.0), 0.0);
 /// assert_eq!(ease_in_quart(1.0), 1.0);
 /// ```
@@ -136,12 +136,12 @@ pub fn ease_in_quart(t: f32) -> f32 {
 }
 
 /// Quartic ease-out - very strong deceleration
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_out_quart;
-/// 
+///
 /// assert_eq!(ease_out_quart(0.0), 0.0);
 /// assert_eq!(ease_out_quart(1.0), 1.0);
 /// ```
@@ -150,12 +150,12 @@ pub fn ease_out_quart(t: f32) -> f32 {
 }
 
 /// Quartic ease-in-out
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_out_quart;
-/// 
+///
 /// assert_eq!(ease_in_out_quart(0.0), 0.0);
 /// assert_eq!(ease_in_out_quart(1.0), 1.0);
 /// ```
@@ -168,12 +168,12 @@ pub fn ease_in_out_quart(t: f32) -> f32 {
 }
 
 /// Quintic ease-in - extremely strong acceleration
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_quint;
-/// 
+///
 /// assert_eq!(ease_in_quint(0.0), 0.0);
 /// assert_eq!(ease_in_quint(1.0), 1.0);
 /// ```
@@ -182,12 +182,12 @@ pub fn ease_in_quint(t: f32) -> f32 {
 }
 
 /// Quintic ease-out - extremely strong deceleration
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_out_quint;
-/// 
+///
 /// assert_eq!(ease_out_quint(0.0), 0.0);
 /// assert_eq!(ease_out_quint(1.0), 1.0);
 /// ```
@@ -196,12 +196,12 @@ pub fn ease_out_quint(t: f32) -> f32 {
 }
 
 /// Quintic ease-in-out
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_out_quint;
-/// 
+///
 /// assert_eq!(ease_in_out_quint(0.0), 0.0);
 /// assert_eq!(ease_in_out_quint(1.0), 1.0);
 /// ```
@@ -214,14 +214,14 @@ pub fn ease_in_out_quint(t: f32) -> f32 {
 }
 
 /// Sine ease-in - smooth sinusoidal acceleration
-/// 
+///
 /// Uses a cosine curve for natural-feeling motion.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_sine;
-/// 
+///
 /// assert_eq!(ease_in_sine(0.0), 0.0);
 /// assert_eq!(ease_in_sine(1.0), 1.0);
 /// ```
@@ -230,14 +230,14 @@ pub fn ease_in_sine(t: f32) -> f32 {
 }
 
 /// Sine ease-out - smooth sinusoidal deceleration
-/// 
+///
 /// Uses a sine curve for natural-feeling motion.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_out_sine;
-/// 
+///
 /// assert_eq!(ease_out_sine(0.0), 0.0);
 /// assert_eq!(ease_out_sine(1.0), 1.0);
 /// ```
@@ -246,12 +246,12 @@ pub fn ease_out_sine(t: f32) -> f32 {
 }
 
 /// Sine ease-in-out - smooth sinusoidal curve
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_out_sine;
-/// 
+///
 /// assert_eq!(ease_in_out_sine(0.0), 0.0);
 /// assert_eq!(ease_in_out_sine(1.0), 1.0);
 /// ```
@@ -260,14 +260,14 @@ pub fn ease_in_out_sine(t: f32) -> f32 {
 }
 
 /// Exponential ease-in - exponential acceleration
-/// 
+///
 /// Creates a very dramatic slow start with rapid acceleration.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_expo;
-/// 
+///
 /// assert_eq!(ease_in_expo(0.0), 0.0);
 /// assert_eq!(ease_in_expo(1.0), 1.0);
 /// ```
@@ -280,14 +280,14 @@ pub fn ease_in_expo(t: f32) -> f32 {
 }
 
 /// Exponential ease-out - exponential deceleration
-/// 
+///
 /// Creates rapid deceleration with a dramatic slow end.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_out_expo;
-/// 
+///
 /// assert_eq!(ease_out_expo(0.0), 0.0);
 /// assert_eq!(ease_out_expo(1.0), 1.0);
 /// ```
@@ -300,12 +300,12 @@ pub fn ease_out_expo(t: f32) -> f32 {
 }
 
 /// Exponential ease-in-out
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_out_expo;
-/// 
+///
 /// assert_eq!(ease_in_out_expo(0.0), 0.0);
 /// assert_eq!(ease_in_out_expo(1.0), 1.0);
 /// ```
@@ -322,12 +322,12 @@ pub fn ease_in_out_expo(t: f32) -> f32 {
 }
 
 /// Circular ease-in - circular curve acceleration
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_circ;
-/// 
+///
 /// assert_eq!(ease_in_circ(0.0), 0.0);
 /// assert_eq!(ease_in_circ(1.0), 1.0);
 /// ```
@@ -336,12 +336,12 @@ pub fn ease_in_circ(t: f32) -> f32 {
 }
 
 /// Circular ease-out - circular curve deceleration
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_out_circ;
-/// 
+///
 /// assert_eq!(ease_out_circ(0.0), 0.0);
 /// assert_eq!(ease_out_circ(1.0), 1.0);
 /// ```
@@ -350,12 +350,12 @@ pub fn ease_out_circ(t: f32) -> f32 {
 }
 
 /// Circular ease-in-out
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_out_circ;
-/// 
+///
 /// assert_eq!(ease_in_out_circ(0.0), 0.0);
 /// assert_eq!(ease_in_out_circ(1.0), 1.0);
 /// ```
@@ -368,14 +368,14 @@ pub fn ease_in_out_circ(t: f32) -> f32 {
 }
 
 /// Back ease-in - overshoots backward before moving forward
-/// 
+///
 /// Creates a slight backward motion before accelerating forward, like a rubber band.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_back;
-/// 
+///
 /// assert_eq!(ease_in_back(0.0), 0.0);
 /// assert!(ease_in_back(0.1) < 0.0); // Negative value (overshoot)
 /// assert_eq!(ease_in_back(1.0), 1.0);
@@ -387,14 +387,14 @@ pub fn ease_in_back(t: f32) -> f32 {
 }
 
 /// Back ease-out - overshoots forward before settling
-/// 
+///
 /// Creates a slight forward overshoot before settling, like a rubber band.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_out_back;
-/// 
+///
 /// assert_eq!(ease_out_back(0.0), 0.0);
 /// assert!(ease_out_back(0.9) > 1.0); // Overshoots past 1.0
 /// assert_eq!(ease_out_back(1.0), 1.0);
@@ -406,12 +406,12 @@ pub fn ease_out_back(t: f32) -> f32 {
 }
 
 /// Back ease-in-out - overshoots at both ends
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_out_back;
-/// 
+///
 /// assert_eq!(ease_in_out_back(0.0), 0.0);
 /// assert_eq!(ease_in_out_back(1.0), 1.0);
 /// ```
@@ -426,14 +426,14 @@ pub fn ease_in_out_back(t: f32) -> f32 {
 }
 
 /// Elastic ease-in - bouncy spring-like motion at start
-/// 
+///
 /// Creates an elastic, bouncy effect with oscillations at the beginning.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_elastic;
-/// 
+///
 /// assert_eq!(ease_in_elastic(0.0), 0.0);
 /// assert_eq!(ease_in_elastic(1.0), 1.0);
 /// ```
@@ -443,19 +443,20 @@ pub fn ease_in_elastic(t: f32) -> f32 {
     } else if t == 1.0 {
         1.0
     } else {
-        -(2.0_f32.powf(10.0 * (t - 1.0))) * ((t - 1.0 - 0.075) * (2.0 * std::f32::consts::PI) / 0.3).sin()
+        -(2.0_f32.powf(10.0 * (t - 1.0)))
+            * ((t - 1.0 - 0.075) * (2.0 * std::f32::consts::PI) / 0.3).sin()
     }
 }
 
 /// Elastic ease-out - bouncy spring-like motion at end
-/// 
+///
 /// Creates an elastic, bouncy effect with oscillations at the end.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_out_elastic;
-/// 
+///
 /// assert_eq!(ease_out_elastic(0.0), 0.0);
 /// assert_eq!(ease_out_elastic(1.0), 1.0);
 /// ```
@@ -470,12 +471,12 @@ pub fn ease_out_elastic(t: f32) -> f32 {
 }
 
 /// Elastic ease-in-out - bouncy spring-like motion
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_out_elastic;
-/// 
+///
 /// assert_eq!(ease_in_out_elastic(0.0), 0.0);
 /// assert_eq!(ease_in_out_elastic(1.0), 1.0);
 /// ```
@@ -485,21 +486,26 @@ pub fn ease_in_out_elastic(t: f32) -> f32 {
     } else if t == 1.0 {
         1.0
     } else if t < 0.5 {
-        -(2.0_f32.powf(20.0 * t - 10.0) * ((20.0 * t - 11.125) * (2.0 * std::f32::consts::PI) / 4.5).sin()) / 2.0
+        -(2.0_f32.powf(20.0 * t - 10.0)
+            * ((20.0 * t - 11.125) * (2.0 * std::f32::consts::PI) / 4.5).sin())
+            / 2.0
     } else {
-        (2.0_f32.powf(-20.0 * t + 10.0) * ((20.0 * t - 11.125) * (2.0 * std::f32::consts::PI) / 4.5).sin()) / 2.0 + 1.0
+        (2.0_f32.powf(-20.0 * t + 10.0)
+            * ((20.0 * t - 11.125) * (2.0 * std::f32::consts::PI) / 4.5).sin())
+            / 2.0
+            + 1.0
     }
 }
 
 /// Bounce ease-in - bounces backward at start
-/// 
+///
 /// Creates a bouncing effect that starts with backward motion.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_bounce;
-/// 
+///
 /// assert_eq!(ease_in_bounce(0.0), 0.0);
 /// assert_eq!(ease_in_bounce(1.0), 1.0);
 /// ```
@@ -508,21 +514,21 @@ pub fn ease_in_bounce(t: f32) -> f32 {
 }
 
 /// Bounce ease-out - bounces at end
-/// 
+///
 /// Creates a bouncing effect with multiple bounces as it settles.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_out_bounce;
-/// 
+///
 /// assert_eq!(ease_out_bounce(0.0), 0.0);
 /// assert_eq!(ease_out_bounce(1.0), 1.0);
 /// ```
 pub fn ease_out_bounce(t: f32) -> f32 {
     const N1: f32 = 7.5625;
     const D1: f32 = 2.75;
-    
+
     if t < 1.0 / D1 {
         N1 * t * t
     } else if t < 2.0 / D1 {
@@ -538,12 +544,12 @@ pub fn ease_out_bounce(t: f32) -> f32 {
 }
 
 /// Bounce ease-in-out - bounces at both ends
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scratchpad_rs::animation::ease_in_out_bounce;
-/// 
+///
 /// assert_eq!(ease_in_out_bounce(0.0), 0.0);
 /// assert_eq!(ease_in_out_bounce(1.0), 1.0);
 /// ```
@@ -801,13 +807,19 @@ mod tests {
     fn test_ease_in_back() {
         test_boundaries(ease_in_back, "ease_in_back");
         // Back functions can go negative, so we don't test monotonicity
-        assert!(ease_in_back(0.1) < 0.0, "ease_in_back should overshoot backward");
+        assert!(
+            ease_in_back(0.1) < 0.0,
+            "ease_in_back should overshoot backward"
+        );
     }
 
     #[test]
     fn test_ease_out_back() {
         test_boundaries(ease_out_back, "ease_out_back");
-        assert!(ease_out_back(0.9) > 1.0, "ease_out_back should overshoot forward");
+        assert!(
+            ease_out_back(0.9) > 1.0,
+            "ease_out_back should overshoot forward"
+        );
     }
 
     #[test]
