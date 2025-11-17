@@ -7,6 +7,7 @@ mod line_aa;
 mod polygon;
 mod rectangle;
 mod triangle;
+mod triangle_barycentric;
 
 use crate::color::Color;
 use crate::framebuffer::FrameBuffer;
