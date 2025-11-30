@@ -14,6 +14,8 @@ use crate::framebuffer::FrameBuffer;
 
 // Re-export helper functions for use in renderer implementations
 pub use helpers::{quantize_hspan, quantize_point, quantize_vspan, snap_axis};
+// Re-export polygon fill rule for external use
+pub use polygon::FillRule;
 
 pub struct Renderer<'a> {
     framebuffer: &'a mut FrameBuffer,

@@ -20,7 +20,7 @@ use crate::animation::lerp::Lerp;
 /// use scratchpad_rs::animation::ease_in_quad;
 /// let kf = Keyframe::with_easing(2.0, 200.0, ease_in_quad);
 /// ```
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone)]
 pub struct Keyframe<T> {
     pub time: f32,
     pub value: T,
