@@ -1,3 +1,9 @@
+pub mod depth_buffer;
+pub mod depth_state;
+
+pub use depth_buffer::DepthBuffer;
+pub use depth_state::{DepthFunc, DepthState};
+
 const BYTES_PER_PIXEL: usize = 4;
 
 /// A framebuffer for storing ARGB8888 pixels

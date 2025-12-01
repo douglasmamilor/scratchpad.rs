@@ -1,4 +1,5 @@
 mod circle;
+mod debug;
 mod ellipse;
 mod fill;
 mod helpers;
@@ -10,7 +11,7 @@ mod triangle;
 mod triangle_barycentric;
 
 use crate::color::Color;
-use crate::framebuffer::FrameBuffer;
+use crate::framebuffer::{DepthBuffer, DepthState, FrameBuffer};
 
 // Re-export helper functions for use in renderer implementations
 pub use helpers::{quantize_hspan, quantize_point, quantize_vspan, snap_axis};
@@ -19,11 +20,20 @@ pub use polygon::FillRule;
 
 pub struct Renderer<'a> {
     framebuffer: &'a mut FrameBuffer,
+    depth_buffer: DepthBuffer,
+    depth_state: DepthState,
 }
 
 impl<'a> Renderer<'a> {
     pub fn new(framebuffer: &'a mut FrameBuffer) -> Self {
-        Self { framebuffer }
+        let depth_state = DepthState::default();
+        let depth_buffer = DepthBuffer::new(framebuffer.width(), framebuffer.height());
+
+        Self {
+            framebuffer,
+            depth_buffer,
+            depth_state,
+        }
     }
 
     #[inline]
@@ -76,8 +86,19 @@ impl<'a> Renderer<'a> {
     }
 
     #[inline]
+    pub fn get_depth(&mut self, point: (usize, usize)) -> f32 {
+        self.depth_buffer.get_depth(point.0, point.1)
+    }
+
+    #[inline]
+    pub fn set_depth(&mut self, point: (usize, usize), depth: f32) {
+        self.depth_buffer.set_depth(point.0, point.1, depth);
+    }
+
+    #[inline]
     pub fn clear(&mut self, color: Color) {
         self.framebuffer.clear(color.to_u32());
+        self.depth_buffer.clear(self.depth_state.clear_value);
     }
 
     #[inline]
