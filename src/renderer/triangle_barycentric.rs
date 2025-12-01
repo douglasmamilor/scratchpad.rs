@@ -46,6 +46,29 @@ impl<'a> Renderer<'a> {
         color_c: Color,
         model: Mat3,
     ) {
+        self.fill_triangle_colored_with_depth(a, b, c, color_a, color_b, color_c, 0.0, 0.0, 0.0, model);
+    }
+
+    /// Fill a triangle with per-vertex colors and per-vertex depth using
+    /// barycentric interpolation.
+    ///
+    /// This is the depth-aware variant of `fill_triangle_colored`. Depth
+    /// values are interpolated per pixel using the same barycentric weights
+    /// as the colors and passed through the renderer's depth test.
+    #[allow(clippy::too_many_arguments)]
+    pub fn fill_triangle_colored_with_depth(
+        &mut self,
+        a: Vec2,
+        b: Vec2,
+        c: Vec2,
+        color_a: Color,
+        color_b: Color,
+        color_c: Color,
+        depth_a: f32,
+        depth_b: f32,
+        depth_c: f32,
+        model: Mat3,
+    ) {
         // Transform vertices to screen space
         let a_s = model.transform_vec2(a);
         let b_s = model.transform_vec2(b);
@@ -74,11 +97,13 @@ impl<'a> Renderer<'a> {
         if A.y == B.y {
             self.fill_flat_top_colored(
                 A, B, C, color_A, color_B, color_C, a_s, b_s, c_s, inv_denom,
+                depth_a, depth_b, depth_c,
             );
             return;
         } else if B.y == C.y {
             self.fill_flat_bottom_colored(
                 A, B, C, color_A, color_B, color_C, a_s, b_s, c_s, inv_denom,
+                depth_a, depth_b, depth_c,
             );
             return;
         }
@@ -93,11 +118,15 @@ impl<'a> Renderer<'a> {
             #[allow(non_snake_case)]
             let color_D = barycentric::interpolate_color(&coords_d, color_a, color_b, color_c);
 
+            let depth_D = barycentric::interpolate_f32(&coords_d, depth_a, depth_b, depth_c);
+
             self.fill_flat_bottom_colored(
                 A, B, D, color_A, color_B, color_D, a_s, b_s, c_s, inv_denom,
+                depth_a, depth_b, depth_D,
             );
             self.fill_flat_top_colored(
                 B, D, C, color_B, color_D, color_C, a_s, b_s, c_s, inv_denom,
+                depth_b, depth_D, depth_c,
             );
         }
     }
@@ -116,6 +145,9 @@ impl<'a> Renderer<'a> {
         b_s: Vec2,
         c_s: Vec2,
         inv_denom: f32,
+        depth_a: f32,
+        depth_b: f32,
+        depth_c: f32,
     ) {
         let eps = 1e-6;
         if (C.y - A.y).abs() < eps || (C.y - B.y).abs() < eps {
@@ -153,14 +185,19 @@ impl<'a> Renderer<'a> {
             for x in x_start..=x_end {
                 let u = 1.0 - v - w;
 
-                // Interpolate color using barycentric coordinates
+                // Interpolate color and depth using barycentric coordinates
+                let coords = barycentric::BarycentricCoords { u, v, w };
                 let color = barycentric::interpolate_color(
                     &barycentric::BarycentricCoords { u, v, w },
                     color_A,
                     color_B,
                     color_C,
                 );
-                self.set_pixel((x, y), color);
+                let depth = barycentric::interpolate_f32(&coords, depth_a, depth_b, depth_c);
+
+                if self.depth_test(x, y, depth) {
+                    self.set_pixel((x, y), color);
+                }
 
                 // Increment barycentric coordinates for next pixel
                 v += delta_v;
@@ -187,6 +224,9 @@ impl<'a> Renderer<'a> {
         b_s: Vec2,
         c_s: Vec2,
         inv_denom: f32,
+        depth_a: f32,
+        depth_b: f32,
+        depth_c: f32,
     ) {
         let eps = 1e-6;
         if (B.y - A.y).abs() < eps || (C.y - A.y).abs() < eps {
@@ -224,13 +264,19 @@ impl<'a> Renderer<'a> {
             for x in x_start..=x_end {
                 let u = 1.0 - v - w;
 
+                let coords = barycentric::BarycentricCoords { u, v, w };
                 let color = barycentric::interpolate_color(
-                    &barycentric::BarycentricCoords { u, v, w },
+                    &coords,
                     color_A,
                     color_B,
                     color_C,
                 );
-                self.set_pixel((x, y), color);
+
+                let depth = barycentric::interpolate_f32(&coords, depth_a, depth_b, depth_c);
+
+                if self.depth_test(x, y, depth) {
+                    self.set_pixel((x, y), color);
+                }
 
                 v += delta_v;
                 w += delta_w;

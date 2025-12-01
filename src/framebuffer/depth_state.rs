@@ -15,7 +15,9 @@ pub struct DepthState {
 impl Default for DepthState {
     fn default() -> Self {
         Self {
-            enabled: true,
+            // Depth testing is opt-in so existing 2D code paths
+            // remain unchanged until explicitly enabled.
+            enabled: false,
             write_enabled: true,
             func: DepthFunc::Less,
             clear_value: 1.0, // far

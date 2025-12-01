@@ -11,7 +11,7 @@ mod triangle;
 mod triangle_barycentric;
 
 use crate::color::Color;
-use crate::framebuffer::{DepthBuffer, DepthState, FrameBuffer};
+use crate::framebuffer::{DepthBuffer, DepthFunc, DepthState, FrameBuffer};
 
 // Re-export helper functions for use in renderer implementations
 pub use helpers::{quantize_hspan, quantize_point, quantize_vspan, snap_axis};
@@ -36,6 +36,16 @@ impl<'a> Renderer<'a> {
         }
     }
 
+    /// Resize the internal depth buffer to match the current framebuffer size.
+    ///
+    /// Useful if you hold onto a `Renderer` across framebuffer resizes instead
+    /// of constructing a new one each frame.
+    #[inline]
+    pub fn resize_depth_to_framebuffer(&mut self) {
+        self.depth_buffer
+            .resize(self.framebuffer.width(), self.framebuffer.height());
+    }
+
     #[inline]
     pub fn width(&self) -> usize {
         self.framebuffer.width()
@@ -44,6 +54,32 @@ impl<'a> Renderer<'a> {
     #[inline]
     pub fn height(&self) -> usize {
         self.framebuffer.height()
+    }
+
+    #[inline]
+    fn depth_test(&mut self, x: i32, y: i32, depth: f32) -> bool {
+        // When depth is disabled, always pass without touching the buffer.
+        if !self.depth_state.enabled {
+            return true;
+        }
+
+        if !self.in_bounds(x, y) {
+            return false;
+        }
+
+        let (ux, uy) = (x as usize, y as usize);
+        let current = self.depth_buffer.get_depth(ux, uy);
+
+        let pass = match self.depth_state.func {
+            DepthFunc::Less => depth < current,
+            DepthFunc::LessEq => depth <= current,
+        };
+
+        if pass && self.depth_state.write_enabled {
+            self.depth_buffer.set_depth(ux, uy, depth);
+        }
+
+        pass
     }
 
     #[inline]
@@ -120,8 +156,13 @@ impl<'a> Renderer<'a> {
         x = x.clamp(0, w - 1);
         // -----------------------
 
+        // For now we use a default layer depth (0.0). When a proper 3D
+        // pipeline is added, per-fragment depths will be passed instead.
+        let depth = 0.0f32;
         for xi in x0..=x {
-            self.set_pixel((xi, y), color);
+            if self.depth_test(xi, y, depth) {
+                self.set_pixel((xi, y), color);
+            }
         }
     }
 
