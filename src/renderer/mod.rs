@@ -3,10 +3,11 @@ mod debug;
 mod ellipse;
 mod fill;
 mod helpers;
-mod line;
-mod line_aa;
 mod polygon;
+mod raster_line;
+mod raster_line_aa;
 mod rectangle;
+mod stroke;
 mod triangle;
 mod triangle_barycentric;
 
