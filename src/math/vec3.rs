@@ -189,9 +189,9 @@ impl Vec3 {
     /// i.e ((b.a)*a)/len_q(a)
     #[inline]
     pub fn project_onto(self, onto: Self) -> Self {
-        let len_sq = onto.len_sq();
-        if len_sq > 0.0 {
-            onto * (self.dot(onto) / len_sq)
+        let onto_len_sq = onto.len_sq();
+        if onto_len_sq > 0.0 {
+            onto * (self.dot(onto) / onto_len_sq)
         } else {
             Self::ZERO
         }
