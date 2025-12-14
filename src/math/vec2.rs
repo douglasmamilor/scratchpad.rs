@@ -184,6 +184,52 @@ impl Vec2 {
         self - 2.0 * self.dot(normal) * normal
     }
 
+    /// Projects this vector onto another vector
+    ///
+    /// Returns the component of this vector that lies along the direction of `onto`.
+    /// The result is a scalar multiple of `onto` that represents the projection.
+    /// i.e ((b.a)*a)/len_q(a)
+    ///
+    /// # Example
+    /// ```
+    /// use scratchpad_rs::math::vec2::Vec2;
+    ///
+    /// let v = Vec2::new(3.0, 4.0);
+    /// let onto = Vec2::new(1.0, 0.0);
+    ///
+    /// // Project onto X-axis should give (3, 0)
+    /// assert_eq!(v.project_onto(onto), Vec2::new(3.0, 0.0));
+    /// ```
+    #[inline]
+    pub fn project_onto(self, onto: Self) -> Self {
+        let onto_len_sq = onto.len_sq();
+        if onto_len_sq > 0.0 {
+            onto * (self.dot(onto) / onto_len_sq)
+        } else {
+            Self::ZERO
+        }
+    }
+
+    /// Returns the component of this vector perpendicular to another vector
+    ///
+    /// Computes the rejection: self - project_onto(self, onto)
+    /// This gives the component of self that is orthogonal to onto.
+    ///
+    /// # Example
+    /// ```
+    /// use scratchpad_rs::math::vec2::Vec2;
+    ///
+    /// let v = Vec2::new(3.0, 4.0);
+    /// let from = Vec2::new(1.0, 0.0);
+    ///
+    /// // Reject from X-axis should give (0, 4)
+    /// assert_eq!(v.reject_from(from), Vec2::new(0.0, 4.0));
+    /// ```
+    #[inline]
+    pub fn reject_from(self, from: Self) -> Self {
+        self - self.project_onto(from)
+    }
+
     /// Returns the angle in radians from the positive X-axis
     ///
     /// Range: [-π, π] (atan2 convention)
@@ -483,6 +529,42 @@ mod tests {
         let normal_x = Vec2::new(1.0, 0.0);
         let reflected_x = incident_x.reflect(normal_x);
         assert_eq!(reflected_x, Vec2::new(1.0, 1.0));
+    }
+
+    #[test]
+    fn projection() {
+        let v = Vec2::new(3.0, 4.0);
+        let onto = Vec2::new(1.0, 0.0);
+
+        // Project onto X-axis should give (3, 0)
+        let projected = v.project_onto(onto);
+        assert_eq!(projected, Vec2::new(3.0, 0.0));
+
+        // Project onto zero vector should give zero
+        let zero_proj = v.project_onto(Vec2::ZERO);
+        assert_eq!(zero_proj, Vec2::ZERO);
+
+        // Project onto itself should give itself
+        let self_proj = v.project_onto(v);
+        assert_eq!(self_proj, v);
+    }
+
+    #[test]
+    fn rejection() {
+        let v = Vec2::new(3.0, 4.0);
+        let from = Vec2::new(1.0, 0.0);
+
+        // Reject from X-axis should give (0, 4)
+        let rejected = v.reject_from(from);
+        assert_eq!(rejected, Vec2::new(0.0, 4.0));
+
+        // Reject from itself should give zero
+        let self_reject = v.reject_from(v);
+        assert_eq!(self_reject, Vec2::ZERO);
+
+        // Reject from zero vector should return original (since projection is zero)
+        let zero_reject = v.reject_from(Vec2::ZERO);
+        assert_eq!(zero_reject, v);
     }
 
     #[test]
