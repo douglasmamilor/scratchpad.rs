@@ -5,6 +5,7 @@ pub mod mat3;
 pub mod point;
 pub mod rect;
 pub mod space;
+pub mod util;
 pub mod vec2;
 pub mod vec3;
 
@@ -15,5 +16,6 @@ pub use mat3::{AffineDecomposition, Decomposition, Mat3};
 pub use point::{Point2, Point3};
 pub use rect::Rect;
 pub use space::{ScreenPoint, ScreenVec2, WorldPoint, WorldVec2};
+pub use util::{deg_ro_rad, distance_point_to_line, rad_to_deg};
 pub use vec2::Vec2;
 pub use vec3::Vec3;
