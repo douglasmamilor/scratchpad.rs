@@ -4,6 +4,7 @@ mod ellipse;
 mod fill;
 mod helpers;
 mod polygon;
+mod polyline;
 mod raster_line;
 mod raster_line_aa;
 mod rectangle;
@@ -11,13 +12,12 @@ mod stroke;
 mod triangle;
 mod triangle_barycentric;
 
+pub use helpers::{quantize_hspan, quantize_point, quantize_vspan, snap_axis};
+pub use polygon::FillRule;
+pub use polyline::Polyline;
+
 use crate::color::Color;
 use crate::framebuffer::{DepthBuffer, DepthFunc, DepthState, FrameBuffer};
-
-// Re-export helper functions for use in renderer implementations
-pub use helpers::{quantize_hspan, quantize_point, quantize_vspan, snap_axis};
-// Re-export polygon fill rule for external use
-pub use polygon::FillRule;
 
 pub struct Renderer<'a> {
     framebuffer: &'a mut FrameBuffer,
