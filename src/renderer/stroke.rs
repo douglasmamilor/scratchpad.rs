@@ -55,11 +55,6 @@ pub struct Path {
     commands: Vec<PathCommand>,
 }
 
-pub struct Polyline {
-    points: Vec<Point2>, // P[0..n-1]
-    closed: bool,        // true if ClosePath
-}
-
 impl<'a> Renderer<'a> {
     pub fn flatten_path_to_polylines(&mut self, path: Path) -> Option<Vec<Polyline>> {
         let mut polylines: Vec<Polyline> = Vec::new();
@@ -237,3 +232,18 @@ pub fn flatten_quad(p0: Point2, c: Point2, p2: Point2, tolerance: f32) -> Vec<Po
     recurse(p0, c, p2, tolerance, &mut out);
     out
 }
+
+// fn get_polyline_length(polyline: &Polyline) -> f32 {
+// let mut length = 0.0;
+// let n = polyline.points.len();
+//
+// for i in 0..n - 1 {
+//     length += (polyline.points[i + 1] - polyline.points[i]).len();
+// }
+//
+// if polyline.closed {
+//     length += (polyline.points[0] - polyline.points[n - 1]).len();
+// }
+//
+// length
+// }
