@@ -463,7 +463,7 @@ impl<T: Lerp> KeyFrameAnimation<T> {
     fn find_segment_index(&self, time: f32) -> usize {
         self.keyframes
             .binary_search_by(|kf| kf.time.total_cmp(&time))
-            .unwrap_or_else(|i| if i == 0 { 0 } else { i - 1 })
+            .unwrap_or_else(|i| if i == 0 { 0 } else { i - 1 }) // the kf index just before
     }
 
     /// Get the current interpolated value
