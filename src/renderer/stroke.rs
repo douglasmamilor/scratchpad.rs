@@ -1,7 +1,5 @@
-use crate::math::Point2;
-use crate::math::distance_point_to_line;
-use crate::renderer::Color;
-use crate::renderer::Renderer;
+use crate::math::{Point2, distance_point_to_line};
+use crate::renderer::{Color, PolyLine, Renderer};
 
 pub enum LineCap {
     Butt,
@@ -56,8 +54,8 @@ pub struct Path {
 }
 
 impl<'a> Renderer<'a> {
-    pub fn flatten_path_to_polylines(&mut self, path: Path) -> Option<Vec<Polyline>> {
-        let mut polylines: Vec<Polyline> = Vec::new();
+    pub fn flatten_path_to_polylines(&mut self, path: Path) -> Option<Vec<PolyLine>> {
+        let mut polylines: Vec<PolyLine> = Vec::new();
         let mut current_points: Vec<Point2> = Vec::new();
         let mut current_point: Option<Point2> = None;
 
@@ -70,10 +68,7 @@ impl<'a> Renderer<'a> {
                     // If we were building a polyline and didn't see ClosePath,
                     // finalize it as open before starting a new subpath.
                     if current_points.len() > 1 {
-                        polylines.push(Polyline {
-                            points: std::mem::take(&mut current_points),
-                            closed: false,
-                        });
+                        polylines.push(PolyLine::new(std::mem::take(&mut current_points), false));
                     } else {
                         current_points.clear();
                     }
@@ -132,10 +127,7 @@ impl<'a> Renderer<'a> {
 
                 PathCommand::ClosePath => {
                     if current_points.len() > 1 {
-                        polylines.push(Polyline {
-                            points: std::mem::take(&mut current_points),
-                            closed: true,
-                        });
+                        polylines.push(PolyLine::new(std::mem::take(&mut current_points), true));
                     } else {
                         current_points.clear();
                     }
@@ -148,10 +140,7 @@ impl<'a> Renderer<'a> {
 
         // End of commands: flush any remaining open polyline
         if current_points.len() > 1 {
-            polylines.push(Polyline {
-                points: std::mem::take(&mut current_points),
-                closed: false,
-            });
+            polylines.push(PolyLine::new(std::mem::take(&mut current_points), false));
         }
 
         if polylines.is_empty() {
@@ -233,7 +222,7 @@ pub fn flatten_quad(p0: Point2, c: Point2, p2: Point2, tolerance: f32) -> Vec<Po
     out
 }
 
-// fn get_polyline_length(polyline: &Polyline) -> f32 {
+// fn get_polyline_length(polyline: &PolyLine) -> f32 {
 // let mut length = 0.0;
 // let n = polyline.points.len();
 //

@@ -14,7 +14,7 @@ mod triangle_barycentric;
 
 pub use helpers::{quantize_hspan, quantize_point, quantize_vspan, snap_axis};
 pub use polygon::FillRule;
-pub use polyline::Polyline;
+pub use polyline::PolyLine;
 
 use crate::color::Color;
 use crate::framebuffer::{DepthBuffer, DepthFunc, DepthState, FrameBuffer};
