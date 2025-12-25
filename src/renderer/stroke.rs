@@ -1,4 +1,4 @@
-use crate::math::{Point2, distance_point_to_line};
+use crate::math::{Point2, distance_point_to_line, mod_pos};
 use crate::renderer::{Color, PolyLine, Renderer};
 
 pub enum LineCap {
@@ -151,13 +151,7 @@ impl<'a> Renderer<'a> {
     }
 }
 
-pub fn flatten_cubic(
-    p0: Point2,
-    c1: Point2,
-    c2: Point2,
-    p3: Point2,
-    tolerance: f32,
-) -> Vec<Point2> {
+fn flatten_cubic(p0: Point2, c1: Point2, c2: Point2, p3: Point2, tolerance: f32) -> Vec<Point2> {
     fn recurse(
         p0: Point2,
         c1: Point2,
@@ -198,7 +192,7 @@ pub fn flatten_cubic(
     out
 }
 
-pub fn flatten_quad(p0: Point2, c: Point2, p2: Point2, tolerance: f32) -> Vec<Point2> {
+fn flatten_quad(p0: Point2, c: Point2, p2: Point2, tolerance: f32) -> Vec<Point2> {
     fn recurse(p0: Point2, c: Point2, p2: Point2, tolerance: f32, out: &mut Vec<Point2>) {
         let deviation = distance_point_to_line(c, (p0, p2));
 
@@ -222,17 +216,155 @@ pub fn flatten_quad(p0: Point2, c: Point2, p2: Point2, tolerance: f32) -> Vec<Po
     out
 }
 
-// fn get_polyline_length(polyline: &PolyLine) -> f32 {
-// let mut length = 0.0;
-// let n = polyline.points.len();
-//
-// for i in 0..n - 1 {
-//     length += (polyline.points[i + 1] - polyline.points[i]).len();
-// }
-//
-// if polyline.closed {
-//     length += (polyline.points[0] - polyline.points[n - 1]).len();
-// }
-//
-// length
-// }
+/// Given one polyline, return the ON dash segments as separate open polylines.
+fn dash_polyline(poly: &PolyLine, dash_len: f32, gap_len: f32, phase: f32) -> Vec<PolyLine> {
+    let total = poly.len();
+    if total <= 0.0 {
+        return vec![];
+    }
+
+    let dash_len = dash_len.max(0.0);
+    let gap_len = gap_len.max(0.0);
+    let period = dash_len + gap_len;
+
+    // Degenerate cases:
+    if dash_len == 0.0 || period == 0.0 {
+        return vec![];
+    }
+    if gap_len == 0.0 {
+        // All ON
+        return vec![PolyLine::new(poly.points().to_vec(), poly.is_closed())];
+    }
+
+    // phase shifts where the pattern starts along the path.
+    // We want a starting offset in [0, period).
+    let start = mod_pos(phase, period);
+
+    // We iterate k so that (k*period - start) spans the whole [0,total]
+    // ON interval for a cycle: [k*period - start, k*period - start + dash_len]
+    let mut out: Vec<PolyLine> = Vec::new();
+
+    // Start k so first ON interval might begin before 0.
+    // Using floor division:
+    let mut k = ((0.0 + start) / period).floor() as i32;
+
+    loop {
+        let on_a = (k as f32) * period - start;
+        let on_b = on_a + dash_len;
+
+        if on_a >= total {
+            break;
+        }
+        if on_b > 0.0 {
+            let a = on_a.max(0.0);
+            let b = on_b.min(total);
+            if b > a
+                && let Some(seg) = poly.slice_by_len(a, b)
+            {
+                out.push(seg);
+            }
+        }
+
+        k += 1;
+        // Safety: if somehow period is tiny, still won’t infinite-loop because on_a grows by period.
+        if (k as f32) * period - start > total + period {
+            break;
+        }
+    }
+
+    out
+}
+
+fn circle_polyline(center: Point2, radius: f32, segments: usize) -> PolyLine {
+    let segments = segments.max(6);
+    let r = radius.max(0.0);
+
+    // If radius is ~0, return a tiny “dot” as a 2-point line (fallback)
+    if r <= 1e-6 {
+        return PolyLine::new(vec![center, center], false);
+    }
+
+    let mut pts = Vec::with_capacity(segments);
+    let tau = std::f32::consts::TAU;
+
+    for i in 0..segments {
+        let t = (i as f32) / (segments as f32);
+        let a = t * tau;
+        let (sa, ca) = a.sin_cos();
+
+        // Adjust this if your Point2 construction differs
+        pts.push(Point2 {
+            x: center.x + ca * r,
+            y: center.y + sa * r,
+        });
+    }
+
+    PolyLine::new(pts, true)
+}
+
+fn dotted_polyline(poly: &PolyLine, dot_space: f32, dot_radius: f32, phase: f32) -> Vec<PolyLine> {
+    let total = poly.len();
+    if total <= 0.0 {
+        return vec![];
+    }
+
+    let step = dot_space.max(1e-6); // avoid divide-by-zero
+    let start = mod_pos(phase, step);
+
+    // Choose how smooth your dot circles are
+    let circle_segments = 16;
+
+    let mut out = Vec::new();
+
+    // Place dot centers at s = start + k*step within [0, total]
+    // If you want a dot at s=0 when phase=0, this does it.
+    let mut s = start;
+    while s <= total {
+        let c = poly.point_at_len(s);
+        out.push(circle_polyline(c, dot_radius, circle_segments));
+        s += step;
+    }
+
+    out
+}
+
+/// Apply stroke pattern to a list of polylines.
+/// For now: only Dashed implemented (Dotted later).
+pub fn apply_stroke_pattern(polylines: &[PolyLine], pattern: &StrokePattern) -> Vec<PolyLine> {
+    match *pattern {
+        StrokePattern::Dashed {
+            dash_length,
+            gap_length,
+            phase,
+            enabled,
+        } => {
+            if !enabled {
+                return polylines.to_vec();
+            }
+
+            let mut out = Vec::new();
+            for pl in polylines {
+                // Typically you dash after flattening, before stroking caps/joins.
+                out.extend(dash_polyline(pl, dash_length, gap_length, phase));
+            }
+            out
+        }
+
+        StrokePattern::Dotted {
+            dot_space,
+            dot_radius,
+            phase,
+            enabled,
+        } => {
+            if !enabled {
+                polylines.to_vec()
+            } else {
+                let mut out = Vec::new();
+                for pl in polylines {
+                    out.extend(dotted_polyline(pl, dot_space, dot_radius, phase));
+                }
+                out
+            }
+        }
+    }
+}

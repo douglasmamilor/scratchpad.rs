@@ -1,6 +1,6 @@
 use crate::math::Point2;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct PolyLine {
     points: Vec<Point2>,          // P[0..n-1]
     cumulative_lengths: Vec<f32>, // length at each point index (starts with 0)
