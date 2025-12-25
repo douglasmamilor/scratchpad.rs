@@ -15,3 +15,9 @@ pub fn distance_point_to_line(p: Point2, line: (Point2, Point2)) -> f32 {
 
     (p - a).reject_from(b - a).len()
 }
+
+/// Positive modulo that works for floats.
+pub fn mod_pos(x: f32, m: f32) -> f32 {
+    let r = x % m;
+    if r < 0.0 { r + m } else { r }
+}
