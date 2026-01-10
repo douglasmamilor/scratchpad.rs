@@ -17,6 +17,7 @@ pub use helpers::{quantize_hspan, quantize_point, quantize_vspan, snap_axis};
 pub use polygon::FillRule;
 pub use polyline::PolyLine;
 pub use stroke::{StrokePattern, apply_stroke_pattern};
+pub use stroke::LineCap;
 
 use crate::color::Color;
 use crate::framebuffer::{DepthBuffer, DepthFunc, DepthState, FrameBuffer};

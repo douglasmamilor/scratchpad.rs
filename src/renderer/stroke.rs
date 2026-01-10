@@ -1,12 +1,14 @@
 use crate::math::{Point2, distance_point_to_line, mod_pos};
 use crate::renderer::{Color, PolyLine, Renderer};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LineCap {
     Butt,
     Square,
     Round,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LineJoin {
     Miter { limit: f32 },
     Bevel,

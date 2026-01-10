@@ -1,4 +1,5 @@
 use crate::{Mat3, Vec2, color::Color, renderer::Renderer};
+use crate::renderer::LineCap;
 
 impl<'a> Renderer<'a> {
     /// Draw a solid, thick line segment by expanding it into a quad and rasterizing as two triangles.
@@ -14,16 +15,30 @@ impl<'a> Renderer<'a> {
         color: Color,
         model: Mat3,
     ) {
-        let start_s = model.transform_vec2(start);
-        let end_s = model.transform_vec2(end);
-        self.draw_line_thick_screen_space(start_s, end_s, thickness_px, color);
+        self.draw_line_thick_capped(start, end, thickness_px, LineCap::Butt, color, model);
     }
 
-    fn draw_line_thick_screen_space(
+    /// Thick line with explicit end-cap style (joins are still not handled).
+    pub fn draw_line_thick_capped(
         &mut self,
-        start_s: Vec2,
-        end_s: Vec2,
+        start: Vec2,
+        end: Vec2,
         thickness_px: f32,
+        cap: LineCap,
+        color: Color,
+        model: Mat3,
+    ) {
+        let start_s = model.transform_vec2(start);
+        let end_s = model.transform_vec2(end);
+        self.draw_line_thick_capped_screen_space(start_s, end_s, thickness_px, cap, color);
+    }
+
+    fn draw_line_thick_capped_screen_space(
+        &mut self,
+        mut start_s: Vec2,
+        mut end_s: Vec2,
+        thickness_px: f32,
+        cap: LineCap,
         color: Color,
     ) {
         if !thickness_px.is_finite() {
@@ -39,19 +54,23 @@ impl<'a> Renderer<'a> {
         let u = end_s - start_s;
         let u_len = u.len();
 
-        // Degenerate segment: render as an axis-aligned square centered at the point.
+        // Degenerate segment: render as a dot.
         if u_len <= 1e-6 {
-            let p0 = Vec2::new(start_s.x - half, start_s.y - half);
-            let p1 = Vec2::new(start_s.x + half, start_s.y - half);
-            let p2 = Vec2::new(start_s.x + half, start_s.y + half);
-            let p3 = Vec2::new(start_s.x - half, start_s.y + half);
-
-            self.fill_triangle(p0, p1, p2, color, Mat3::IDENTITY);
-            self.fill_triangle(p0, p2, p3, color, Mat3::IDENTITY);
+            self.fill_circle(start_s, half, color, Mat3::IDENTITY);
             return;
         }
 
         let u_hat = u / u_len;
+
+        match cap {
+            LineCap::Butt => {}
+            LineCap::Square => {
+                start_s -= u_hat * half;
+                end_s += u_hat * half;
+            }
+            LineCap::Round => {}
+        }
+
         let u_n = Vec2::new(-u_hat.y, u_hat.x);
         let offset = u_n * half;
 
@@ -64,6 +83,11 @@ impl<'a> Renderer<'a> {
         // Two triangles covering the quad.
         self.fill_triangle(p0, p1, p2, color, Mat3::IDENTITY);
         self.fill_triangle(p0, p2, p3, color, Mat3::IDENTITY);
+
+        if cap == LineCap::Round {
+            self.fill_circle(start_s, half, color, Mat3::IDENTITY);
+            self.fill_circle(end_s, half, color, Mat3::IDENTITY);
+        }
     }
 }
 
