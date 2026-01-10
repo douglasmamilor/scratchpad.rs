@@ -78,7 +78,7 @@ impl PolyLine {
         match cum_chain.binary_search_by(|v| v.total_cmp(&s)) {
             Ok(i) => {
                 // exactly at a vertex
-                return self.points[i.min(n - 1)];
+                self.points[i.min(n - 1)]
             }
             Err(i) => {
                 // s is between cum[i-1] and cum[i]

@@ -59,9 +59,6 @@ impl<'a> Renderer<'a> {
         let mut current_points: Vec<Point2> = Vec::new();
         let mut current_point: Option<Point2> = None;
 
-        #[allow(unused_variables)]
-        let mut start_point: Option<Point2> = None;
-
         for cmd in path.commands.iter() {
             match cmd {
                 PathCommand::MoveTo(p) => {
@@ -74,7 +71,6 @@ impl<'a> Renderer<'a> {
                     }
 
                     current_points.push(*p);
-                    start_point = Some(*p);
                     current_point = Some(*p);
                 }
 
@@ -82,7 +78,6 @@ impl<'a> Renderer<'a> {
                     if current_points.is_empty() {
                         // implicit MoveTo
                         current_points.push(*p);
-                        start_point = Some(*p);
                     } else {
                         current_points.push(*p);
                     }
@@ -95,7 +90,6 @@ impl<'a> Renderer<'a> {
                         None => {
                             // implicit MoveTo to the segment end (keeps state consistent)
                             current_points.push(*p2);
-                            start_point = Some(*p2);
                             current_point = Some(*p2);
                             continue;
                         }
@@ -113,7 +107,6 @@ impl<'a> Renderer<'a> {
                         None => {
                             // implicit MoveTo to the segment end (keeps state consistent)
                             current_points.push(*p3);
-                            start_point = Some(*p3);
                             current_point = Some(*p3);
                             continue;
                         }
@@ -132,7 +125,6 @@ impl<'a> Renderer<'a> {
                         current_points.clear();
                     }
 
-                    start_point = None;
                     current_point = None;
                 }
             }
@@ -223,41 +215,67 @@ fn dash_polyline(poly: &PolyLine, dash_len: f32, gap_len: f32, phase: f32) -> Ve
         return vec![];
     }
 
+    // Defensively reject NaN/∞ inputs (comparisons with NaN behave unexpectedly).
+    if !dash_len.is_finite() || !gap_len.is_finite() || !phase.is_finite() {
+        return vec![];
+    }
+
+    // Normalize to non-negative lengths.
     let dash_len = dash_len.max(0.0);
     let gap_len = gap_len.max(0.0);
     let period = dash_len + gap_len;
 
-    // Degenerate cases:
+    // Degenerate cases.
     if dash_len == 0.0 || period == 0.0 {
         return vec![];
     }
     if gap_len == 0.0 {
-        // All ON
+        // All ON.
         return vec![PolyLine::new(poly.points().to_vec(), poly.is_closed())];
     }
 
-    // phase shifts where the pattern starts along the path.
-    // We want a starting offset in [0, period).
+    // Phase shifts where the pattern starts along the path.
+    // Normalize into [0, period).
     let start = mod_pos(phase, period);
 
-    // We iterate k so that (k*period - start) spans the whole [0,total]
-    // ON interval for a cycle: [k*period - start, k*period - start + dash_len]
+    // - Accumulate interval endpoints in f64 with repeated addition.
+    // - Clamp in f64.
+    // - Cast to f32 only at the `slice_by_len` boundary.
+    let total64 = total as f64;
+    let period64 = period as f64;
+    let dash64 = dash_len as f64;
+    let start64 = start as f64;
+
+    let mut on_a = -start64;
+    let mut on_b = on_a + dash64;
+
+    // Compute how many cycles we need, then cap to avoid pathological tiny-period
+    // inputs generating enormous work.
+    // Add 1 as a buffer for floating point
+    let needed_cycles = ((total64 + start64) / period64).ceil() as usize + 1;
+
+    const MAX_DASH_CYCLES: usize = 1_000_000;
+    if needed_cycles > MAX_DASH_CYCLES {
+        // Pattern too dense to be meaningful; render as solid.
+        return vec![PolyLine::new(poly.points().to_vec(), poly.is_closed())];
+    }
+
     let mut out: Vec<PolyLine> = Vec::new();
 
-    // Start k so first ON interval might begin before 0.
-    // Using floor division:
-    let mut k = ((0.0 + start) / period).floor() as i32;
-
-    loop {
-        let on_a = (k as f32) * period - start;
-        let on_b = on_a + dash_len;
-
-        if on_a >= total {
+    for _ in 0..needed_cycles {
+        if on_a >= total64 {
             break;
         }
+
         if on_b > 0.0 {
-            let a = on_a.max(0.0);
-            let b = on_b.min(total);
+            // Clamp symmetrically in f64 first.
+            let a64 = on_a.max(0.0).min(total64);
+            let b64 = on_b.max(0.0).min(total64);
+
+            // Convert once at the API boundary.
+            let a = a64 as f32;
+            let b = b64 as f32;
+
             if b > a
                 && let Some(seg) = poly.slice_by_len(a, b)
             {
@@ -265,11 +283,9 @@ fn dash_polyline(poly: &PolyLine, dash_len: f32, gap_len: f32, phase: f32) -> Ve
             }
         }
 
-        k += 1;
-        // Safety: if somehow period is tiny, still won’t infinite-loop because on_a grows by period.
-        if (k as f32) * period - start > total + period {
-            break;
-        }
+        // Advance to next ON interval.
+        on_a += period64;
+        on_b += period64;
     }
 
     out
@@ -344,7 +360,6 @@ pub fn apply_stroke_pattern(polylines: &[PolyLine], pattern: &StrokePattern) -> 
 
             let mut out = Vec::new();
             for pl in polylines {
-                // Typically you dash after flattening, before stroking caps/joins.
                 out.extend(dash_polyline(pl, dash_length, gap_length, phase));
             }
             out
