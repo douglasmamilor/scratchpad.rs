@@ -9,15 +9,14 @@ mod raster_line;
 mod raster_line_aa;
 mod rectangle;
 mod stroke;
-mod thick_line;
 mod triangle;
 mod triangle_barycentric;
 
 pub use helpers::{quantize_hspan, quantize_point, quantize_vspan, snap_axis};
 pub use polygon::FillRule;
 pub use polyline::PolyLine;
-pub use stroke::{StrokePattern, apply_stroke_pattern};
-pub use stroke::LineCap;
+pub use stroke::pattern::apply_stroke_pattern;
+pub use stroke::types::{LineCap, LineJoin, StrokePattern, StrokeSpace, StrokeStyle};
 
 use crate::color::Color;
 use crate::framebuffer::{DepthBuffer, DepthFunc, DepthState, FrameBuffer};
