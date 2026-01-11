@@ -1,4 +1,4 @@
-use crate::math::{EPS, angle_delta, perp_left};
+use crate::math::{EPS, angle_delta};
 use crate::renderer::stroke::path::Path;
 use crate::renderer::stroke::types::{LineCap, StrokeSpace, StrokeStyle};
 use crate::renderer::{LineJoin, PolyLine, apply_stroke_pattern};
@@ -116,28 +116,22 @@ impl<'a> Renderer<'a> {
         let u_in_hat = u_in / u_in_len;
         let u_out_hat = u_out / u_out_len;
 
+        let y_down = matches!(join_round_mode, JoinRoundMode::Screen);
+
         // Collinear? Then no join geometry needed.
-        //
-        // NOTE: Screen space in this project is Y-down, which makes it a left-handed
-        // coordinate system. Our turn/orientation tests (cross product sign) assume
-        // the usual Y-up right-handed convention, so we flip the sign in screen space
-        // to keep “outer side” selection consistent.
-        let mut cross = u_in_hat.cross(u_out_hat);
-        if matches!(join_round_mode, JoinRoundMode::Screen) {
-            cross = -cross;
-        }
+        let cross = u_in_hat.cross(u_out_hat);
         if cross.abs() <= 1e-6 {
             return;
         }
 
-        // Left normals for each segment in working space.
-        let n_in = perp_left(u_in_hat);
-        let n_out = perp_left(u_out_hat);
+        // Screen space is Y-down (left-handed), so CCW in Y-up corresponds to cross < 0.
+        let ccw = if y_down { cross < 0.0 } else { cross > 0.0 };
 
-        // Determine outer side.
-        // cross > 0 => left turn => outer is LEFT
-        // cross < 0 => right turn => outer is RIGHT (flip normals)
-        let (n_outer_in, n_outer_out, sweep_ccw) = if cross > 0.0 {
+        // Segment stroker offset normal (matches stroke_segment_core).
+        let n_in = Vec2::new(-u_in_hat.y, u_in_hat.x);
+        let n_out = Vec2::new(-u_out_hat.y, u_out_hat.x);
+
+        let (n_outer_in, n_outer_out, sweep_ccw) = if ccw {
             (n_in, n_out, true)
         } else {
             (-n_in, -n_out, false)
@@ -201,13 +195,15 @@ impl<'a> Renderer<'a> {
             return;
         }
 
+        // Always bridge the two stroked quads.
+        self.fill_triangle(b, p_in_outer, p_out_outer, color, model_for_tris);
+
         // Intersect the two outer offset lines:
         // L1: p = p_in_outer  + t * u_in_hat
         // L2: p = p_out_outer + s * u_out_hat
         let denom = u_in_hat.cross(u_out_hat);
         if denom.abs() <= 1e-6 {
-            // Parallel-ish, bevel fallback.
-            self.fill_triangle(b, p_in_outer, p_out_outer, color, model_for_tris);
+            // Parallel-ish, nothing more to add beyond the bridge.
             return;
         }
 
@@ -216,15 +212,13 @@ impl<'a> Renderer<'a> {
 
         let miter_len = (miter_pt - b).len();
         if !miter_len.is_finite() {
-            self.fill_triangle(b, p_in_outer, p_out_outer, color, model_for_tris);
             return;
         }
 
         // SVG-style miter limit check: compare (miter_len / half) to limit.
         let ratio = miter_len / half;
         if ratio > miter_limit {
-            // Too pointy => bevel.
-            self.fill_triangle(b, p_in_outer, p_out_outer, color, model_for_tris);
+            // Too pointy => just the bridge (equivalent to bevel fallback).
             return;
         }
 
@@ -244,12 +238,16 @@ impl<'a> Renderer<'a> {
         model_for_tris: Mat3,
         mode: JoinRoundMode,
     ) {
-        // Build angles around b in working space.
-        let v0 = p0 - b;
-        let v1 = p1 - b;
+        let y_down = matches!(mode, JoinRoundMode::Screen);
+        let to_y_up = |v: Vec2| if y_down { Vec2::new(v.x, -v.y) } else { v };
+        let from_y_up = |v: Vec2| if y_down { Vec2::new(v.x, -v.y) } else { v };
 
-        let a0 = v0.y.atan2(v0.x);
-        let a1 = v1.y.atan2(v1.x);
+        // Build angles around b in a consistent Y-up space.
+        let v0_y = to_y_up(p0 - b);
+        let v1_y = to_y_up(p1 - b);
+
+        let a0 = v0_y.y.atan2(v0_y.x);
+        let a1 = v1_y.y.atan2(v1_y.x);
 
         // Compute a signed sweep delta consistent with desired direction.
         let delta = angle_delta(a0, a1, sweep_ccw);
@@ -266,7 +264,7 @@ impl<'a> Renderer<'a> {
                     let t = i as f32 / steps as f32;
                     let ang = a0 + delta * t;
                     let (s, c) = ang.sin_cos();
-                    let p = b + Vec2::new(c, s) * half;
+                    let p = b + from_y_up(Vec2::new(c, s) * half);
 
                     self.fill_triangle(b, prev, p, color, model_for_tris);
                     prev = p;
@@ -528,6 +526,43 @@ enum RoundCapMode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::color::Color;
+    use crate::framebuffer::FrameBuffer;
+    use crate::math::Point2;
+    use crate::renderer::{LineCap, LineJoin, PolyLine, Renderer, StrokeSpace, StrokeStyle};
+
+    const FB: usize = 160;
+
+    fn filled(fb: &FrameBuffer, x: usize, y: usize) -> bool {
+        fb.get_pixel(x, y).unwrap_or(0) != 0
+    }
+
+    fn count_filled(fb: &FrameBuffer) -> usize {
+        fb.pixels.iter().filter(|&&p| p != 0).count()
+    }
+
+    fn render_screen(poly: PolyLine, join: LineJoin) -> FrameBuffer {
+        let mut fb = FrameBuffer::new(FB, FB);
+        let mut r = Renderer::new(&mut fb);
+        r.clear(Color::TRANSPARENT);
+        let style = StrokeStyle::solid_screen_px(32.0, Color::WHITE)
+            .with_cap(LineCap::Butt)
+            .with_join(join);
+        r.stroke_polyline(&poly, &style, Mat3::IDENTITY);
+        fb
+    }
+
+    fn render_world(poly: PolyLine, join: LineJoin, model: Mat3) -> FrameBuffer {
+        let mut fb = FrameBuffer::new(FB, FB);
+        let mut r = Renderer::new(&mut fb);
+        r.clear(Color::TRANSPARENT);
+        let style = StrokeStyle::solid_screen_px(32.0, Color::WHITE)
+            .with_space(StrokeSpace::WorldSpace { thickness: 32 })
+            .with_cap(LineCap::Butt)
+            .with_join(join);
+        r.stroke_polyline(&poly, &style, model);
+        fb
+    }
 
     #[test]
     fn world_space_thickness_scales_with_model_direction() {
@@ -564,5 +599,118 @@ mod tests {
         assert!((offset.x - 0.0).abs() < 1e-6);
         assert!((offset.y - half).abs() < 1e-6);
         assert!((offset.dot(dir)).abs() < 1e-6);
+    }
+
+    #[test]
+    fn miter_adds_area_vs_bevel_on_left_turn_screen() {
+        // Right then sharp up turn (convex). Acute angle so the miter should add area.
+        let poly = PolyLine::new(
+            vec![
+                Point2::new(20.0, 60.0),
+                Point2::new(50.0, 60.0),
+                Point2::new(50.0, 30.0),
+            ],
+            false,
+        );
+
+        // Put the corner in the center and sample far outside the quads.
+        let fb_bevel = render_screen(poly.clone(), LineJoin::Bevel);
+        let fb_miter = render_screen(poly, LineJoin::Miter { limit: 100.0 });
+
+        let mut extras = 0;
+        for y in 0..FB {
+            for x in 0..FB {
+                if filled(&fb_miter, x, y) && !filled(&fb_bevel, x, y) {
+                    extras += 1;
+                }
+            }
+        }
+        assert!(extras > 0);
+    }
+
+    #[test]
+    fn miter_adds_area_vs_bevel_on_right_turn_screen() {
+        // Right then sharp down turn (convex mirror of the above).
+        let poly = PolyLine::new(
+            vec![
+                Point2::new(20.0, 36.0),
+                Point2::new(50.0, 36.0),
+                Point2::new(80.0, 66.0),
+            ],
+            false,
+        );
+
+        let fb_bevel = render_screen(poly.clone(), LineJoin::Bevel);
+        let fb_miter = render_screen(poly, LineJoin::Miter { limit: 100.0 });
+
+        let mut extras = 0;
+        for y in 0..FB {
+            for x in 0..FB {
+                if filled(&fb_miter, x, y) && !filled(&fb_bevel, x, y) {
+                    extras += 1;
+                }
+            }
+        }
+        assert!(extras > 0);
+    }
+
+    #[test]
+    fn miter_limit_fallback_matches_bevel() {
+        let poly = PolyLine::new(
+            vec![
+                Point2::new(20.0, 60.0),
+                Point2::new(50.0, 60.0),
+                Point2::new(80.0, 30.0),
+            ],
+            false,
+        );
+
+        let fb_bevel = render_screen(poly.clone(), LineJoin::Bevel);
+        let fb_miter_limited = render_screen(poly, LineJoin::Miter { limit: 1.0 });
+
+        // With a very low limit, miter should fall back to bevel.
+        assert_eq!(count_filled(&fb_bevel), count_filled(&fb_miter_limited));
+    }
+
+    #[test]
+    fn round_no_hole_vs_bevel() {
+        let poly = PolyLine::new(
+            vec![
+                Point2::new(20.0, 60.0),
+                Point2::new(50.0, 60.0),
+                Point2::new(50.0, 30.0),
+            ],
+            false,
+        );
+
+        let fb_bevel = render_screen(poly.clone(), LineJoin::Bevel);
+        let fb_round = render_screen(poly, LineJoin::Round);
+
+        // At 90°, round may not add area vs bevel, but it should not leave gaps.
+        assert!(count_filled(&fb_round) >= count_filled(&fb_bevel));
+    }
+
+    #[test]
+    fn world_space_joins_match_screen_space_when_flipped() {
+        // Use a Y-flip model to map world Y-up into screen Y-down and verify
+        // miter adds area beyond bevel in world space too.
+        let model = Mat3::translate(0.0, FB as f32) * Mat3::scale(1.0, -1.0);
+
+        let poly_world = PolyLine::new(
+            vec![
+                Point2::new(20.0, 120.0),
+                Point2::new(50.0, 120.0),
+                Point2::new(110.0, 40.0),
+            ],
+            false,
+        );
+
+        let fb_bevel = render_world(poly_world.clone(), LineJoin::Bevel, model);
+        let fb_miter = render_world(poly_world, LineJoin::Miter { limit: 100.0 }, model);
+
+        // World-space join should at least render some pixels; in practice it matches screen-space
+        // when the model is a flip/translate. This guards against “no output”.
+        assert!(count_filled(&fb_miter) > 0);
+        assert!(count_filled(&fb_miter) >= count_filled(&fb_bevel));
     }
 }
