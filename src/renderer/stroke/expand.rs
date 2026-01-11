@@ -1,20 +1,299 @@
+use crate::math::{EPS, angle_delta, perp_left};
+use crate::renderer::stroke::path::Path;
 use crate::renderer::stroke::types::{LineCap, StrokeSpace, StrokeStyle};
+use crate::renderer::{LineJoin, PolyLine, apply_stroke_pattern};
 use crate::{Mat3, Vec2, color::Color, renderer::Renderer};
 
+#[derive(Clone, Copy)]
+enum JoinRoundMode {
+    Screen,
+    World { model: Mat3 },
+}
+
 impl<'a> Renderer<'a> {
-    pub fn draw_line_thick(
-        &mut self,
-        start: Vec2,
-        end: Vec2,
-        thickness_px: f32,
-        color: Color,
-        model: Mat3,
-    ) {
-        let style = StrokeStyle::solid_screen_px(thickness_px, color);
-        self.stroke_line(start, end, &style, model);
+    pub fn stroke_line(&mut self, start: Vec2, end: Vec2, style: &StrokeStyle, model: Mat3) {
+        self.stroke_segment(start, end, style, model);
     }
 
-    pub fn stroke_line(&mut self, start: Vec2, end: Vec2, style: &StrokeStyle, model: Mat3) {
+    /// Stroke a continuous polyline (polyline layer).
+    ///
+    /// Pipeline expectation:
+    /// - Flatten path -> polylines
+    /// - Apply dash/dot pattern -> polylines
+    /// - Then stroke each polyline here (joins happen here)
+    pub fn stroke_polyline(&mut self, poly: &PolyLine, style: &StrokeStyle, model: Mat3) {
+        let pts = poly.points();
+        if pts.len() < 2 {
+            return;
+        }
+
+        // 1) Stroke all segments (your existing segment stroker)
+        //
+        // NOTE: Ideally interior segments should be stroked with Butt caps to avoid “double caps”.
+        // For now, keep it simple and rely on joins to visually connect.
+        if !poly.is_closed() {
+            for i in 0..(pts.len() - 1) {
+                let a = pts[i]; // Point2 is Vec2
+                let b = pts[i + 1]; // Point2 is Vec2
+                self.stroke_segment(a, b, style, model);
+            }
+        } else {
+            for i in 0..pts.len() {
+                let a = pts[i];
+                let b = pts[(i + 1) % pts.len()];
+                self.stroke_segment(a, b, style, model);
+            }
+        }
+
+        // 2) Emit joins (needs A-B-C)
+        if pts.len() < 3 {
+            return;
+        }
+
+        if !poly.is_closed() {
+            for i in 1..(pts.len() - 1) {
+                let a = pts[i - 1];
+                let b = pts[i];
+                let c = pts[i + 1];
+                self.emit_join_abc(a, b, c, style, model);
+            }
+        } else {
+            for i in 0..pts.len() {
+                let a = pts[(i + pts.len() - 1) % pts.len()];
+                let b = pts[i];
+                let c = pts[(i + 1) % pts.len()];
+                self.emit_join_abc(a, b, c, style, model);
+            }
+        }
+    }
+
+    pub fn stroke_path(&mut self, path: &Path, style: &StrokeStyle, model: Mat3) {
+        let Some(polylines) = self.flatten_path_to_polylines(path) else {
+            return;
+        };
+
+        let patterned = apply_stroke_pattern(&polylines, style.pattern());
+
+        for pl in &patterned {
+            self.stroke_polyline(pl, style, model);
+        }
+    }
+
+    fn emit_join_abc(&mut self, a: Vec2, b: Vec2, c: Vec2, style: &StrokeStyle, model: Mat3) {
+        // Determine working space + half thickness.
+        let (a_w, b_w, c_w, half, model_for_tris, join_round_mode) = match *style.space() {
+            StrokeSpace::ScreenSpace { thickness } => {
+                // transform points to screen, render in screen with identity model
+                let a_s = model.transform_vec2(a);
+                let b_s = model.transform_vec2(b);
+                let c_s = model.transform_vec2(c);
+                let half = 0.5 * (thickness as f32);
+                (a_s, b_s, c_s, half, Mat3::IDENTITY, JoinRoundMode::Screen)
+            }
+            StrokeSpace::WorldSpace { thickness } => {
+                let half = 0.5 * (thickness as f32);
+                (a, b, c, half, model, JoinRoundMode::World { model })
+            }
+        };
+
+        if !half.is_finite() || half <= 0.0 {
+            return;
+        }
+
+        // If either segment is degenerate, skip join.
+        let u_in = b_w - a_w;
+        let u_out = c_w - b_w;
+
+        let u_in_len = u_in.len();
+        let u_out_len = u_out.len();
+        if !u_in_len.is_finite() || !u_out_len.is_finite() {
+            return;
+        }
+        if u_in_len <= EPS || u_out_len <= EPS {
+            return;
+        }
+
+        let u_in_hat = u_in / u_in_len;
+        let u_out_hat = u_out / u_out_len;
+
+        // Collinear? Then no join geometry needed.
+        //
+        // NOTE: Screen space in this project is Y-down, which makes it a left-handed
+        // coordinate system. Our turn/orientation tests (cross product sign) assume
+        // the usual Y-up right-handed convention, so we flip the sign in screen space
+        // to keep “outer side” selection consistent.
+        let mut cross = u_in_hat.cross(u_out_hat);
+        if matches!(join_round_mode, JoinRoundMode::Screen) {
+            cross = -cross;
+        }
+        if cross.abs() <= 1e-6 {
+            return;
+        }
+
+        // Left normals for each segment in working space.
+        let n_in = perp_left(u_in_hat);
+        let n_out = perp_left(u_out_hat);
+
+        // Determine outer side.
+        // cross > 0 => left turn => outer is LEFT
+        // cross < 0 => right turn => outer is RIGHT (flip normals)
+        let (n_outer_in, n_outer_out, sweep_ccw) = if cross > 0.0 {
+            (n_in, n_out, true)
+        } else {
+            (-n_in, -n_out, false)
+        };
+
+        // The two outer offset points at the join.
+        let p_in_outer = b_w + n_outer_in * half;
+        let p_out_outer = b_w + n_outer_out * half;
+
+        match style.join() {
+            LineJoin::Bevel => {
+                // Fill the outer wedge with one triangle.
+                self.fill_triangle(b_w, p_in_outer, p_out_outer, style.color(), model_for_tris);
+            }
+
+            LineJoin::Miter { limit } => {
+                self.emit_join_miter(
+                    b_w,
+                    u_in_hat,
+                    u_out_hat,
+                    p_in_outer,
+                    p_out_outer,
+                    half,
+                    limit,
+                    style.color(),
+                    model_for_tris,
+                );
+            }
+
+            LineJoin::Round => {
+                self.emit_join_round(
+                    b_w,
+                    p_in_outer,
+                    p_out_outer,
+                    half,
+                    sweep_ccw,
+                    style.color(),
+                    model_for_tris,
+                    join_round_mode,
+                );
+            }
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn emit_join_miter(
+        &mut self,
+        b: Vec2,
+        u_in_hat: Vec2,
+        u_out_hat: Vec2,
+        p_in_outer: Vec2,
+        p_out_outer: Vec2,
+        half: f32,
+        miter_limit: f32,
+        color: Color,
+        model_for_tris: Mat3,
+    ) {
+        if !miter_limit.is_finite() || miter_limit <= 0.0 {
+            // Treat bad limit as bevel.
+            self.fill_triangle(b, p_in_outer, p_out_outer, color, model_for_tris);
+            return;
+        }
+
+        // Intersect the two outer offset lines:
+        // L1: p = p_in_outer  + t * u_in_hat
+        // L2: p = p_out_outer + s * u_out_hat
+        let denom = u_in_hat.cross(u_out_hat);
+        if denom.abs() <= 1e-6 {
+            // Parallel-ish, bevel fallback.
+            self.fill_triangle(b, p_in_outer, p_out_outer, color, model_for_tris);
+            return;
+        }
+
+        let t = (p_out_outer - p_in_outer).cross(u_out_hat) / denom;
+        let miter_pt = p_in_outer + u_in_hat * t;
+
+        let miter_len = (miter_pt - b).len();
+        if !miter_len.is_finite() {
+            self.fill_triangle(b, p_in_outer, p_out_outer, color, model_for_tris);
+            return;
+        }
+
+        // SVG-style miter limit check: compare (miter_len / half) to limit.
+        let ratio = miter_len / half;
+        if ratio > miter_limit {
+            // Too pointy => bevel.
+            self.fill_triangle(b, p_in_outer, p_out_outer, color, model_for_tris);
+            return;
+        }
+
+        // Valid miter: fill outer wedge as triangle to miter point.
+        self.fill_triangle(p_in_outer, miter_pt, p_out_outer, color, model_for_tris);
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn emit_join_round(
+        &mut self,
+        b: Vec2,
+        p0: Vec2, // b + n_outer_in  * half
+        p1: Vec2, // b + n_outer_out * half
+        half: f32,
+        sweep_ccw: bool,
+        color: Color,
+        model_for_tris: Mat3,
+        mode: JoinRoundMode,
+    ) {
+        // Build angles around b in working space.
+        let v0 = p0 - b;
+        let v1 = p1 - b;
+
+        let a0 = v0.y.atan2(v0.x);
+        let a1 = v1.y.atan2(v1.x);
+
+        // Compute a signed sweep delta consistent with desired direction.
+        let delta = angle_delta(a0, a1, sweep_ccw);
+
+        // How many fan segments? (tuneable)
+        // ~ every 10 degrees => PI/18
+        let steps = ((delta.abs() / (std::f32::consts::PI / 18.0)).ceil() as i32).max(6) as usize;
+
+        match mode {
+            JoinRoundMode::Screen => {
+                // Points are already in screen, triangles draw with identity.
+                let mut prev = p0;
+                for i in 1..=steps {
+                    let t = i as f32 / steps as f32;
+                    let ang = a0 + delta * t;
+                    let (s, c) = ang.sin_cos();
+                    let p = b + Vec2::new(c, s) * half;
+
+                    self.fill_triangle(b, prev, p, color, model_for_tris);
+                    prev = p;
+                }
+            }
+
+            JoinRoundMode::World { model } => {
+                // Generate arc points in world space, transform each to screen,
+                // and draw fan in screen (identity).
+                let b_s = model.transform_vec2(b);
+                let mut prev_s = model.transform_vec2(p0);
+
+                for i in 1..=steps {
+                    let t = i as f32 / steps as f32;
+                    let ang = a0 + delta * t;
+                    let (s, c) = ang.sin_cos();
+                    let p_world = b + Vec2::new(c, s) * half;
+                    let p_s = model.transform_vec2(p_world);
+
+                    self.fill_triangle(b_s, prev_s, p_s, color, Mat3::IDENTITY);
+                    prev_s = p_s;
+                }
+            }
+        }
+    }
+
+    pub fn stroke_segment(&mut self, start: Vec2, end: Vec2, style: &StrokeStyle, model: Mat3) {
         match *style.space() {
             StrokeSpace::ScreenSpace { thickness } => {
                 let start_s = model.transform_vec2(start);
@@ -51,6 +330,7 @@ impl<'a> Renderer<'a> {
     /// - For WorldSpace: start/end are in world coords, and model_for_tris = model.
     ///
     /// This avoids duplicating the quad math.
+    #[allow(clippy::too_many_arguments)]
     fn stroke_segment_core(
         &mut self,
         mut start_w: Vec2,

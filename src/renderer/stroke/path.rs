@@ -4,6 +4,7 @@ use crate::{
     renderer::{PolyLine, Renderer},
 };
 
+#[derive(Clone, Debug)]
 pub enum PathCommand {
     MoveTo(Point2),                  // start new subpath at P
     LineTo(Point2),                  // straight line
@@ -12,12 +13,13 @@ pub enum PathCommand {
     ClosePath,                       // connect back to last MoveTo
 }
 
+#[derive(Clone, Debug)]
 pub struct Path {
     commands: Vec<PathCommand>,
 }
 
 impl<'a> Renderer<'a> {
-    pub fn flatten_path_to_polylines(&mut self, path: Path) -> Option<Vec<PolyLine>> {
+    pub fn flatten_path_to_polylines(&mut self, path: &Path) -> Option<Vec<PolyLine>> {
         let mut polylines: Vec<PolyLine> = Vec::new();
         let mut current_points: Vec<Point2> = Vec::new();
         let mut current_point: Option<Point2> = None;
