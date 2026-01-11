@@ -8,7 +8,7 @@ mod polyline;
 mod raster_line;
 mod raster_line_aa;
 mod rectangle;
-mod stroke;
+pub mod stroke;
 mod triangle;
 mod triangle_barycentric;
 
