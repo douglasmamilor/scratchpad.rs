@@ -1,7 +1,11 @@
 use crate::{
     Point2,
-    math::mod_pos,
-    renderer::{PolyLine, stroke::types::StrokePattern},
+    Mat3,
+    math::{Vec2, mod_pos},
+    renderer::{
+        PolyLine,
+        stroke::types::{PatternSpace, StrokePattern, StrokeSpace},
+    },
 };
 
 /// Given one polyline, return the ON dash segments as separate open polylines.
@@ -140,19 +144,48 @@ fn dotted_polyline(poly: &PolyLine, dot_space: f32, dot_radius: f32, phase: f32)
     out
 }
 
+fn inv_pattern_scale(pattern_space: PatternSpace, stroke_space: &StrokeSpace, model: Mat3) -> f32 {
+    match pattern_space {
+        PatternSpace::PathSpace => 1.0,
+        PatternSpace::StrokeSpace => match *stroke_space {
+            // Screen space: pattern units are pixels; convert to path space by dividing by model scale.
+            StrokeSpace::ScreenSpace { .. } => {
+                let ux = model.transform_vec2_direction(Vec2::new(1.0, 0.0)).len();
+                let uy = model.transform_vec2_direction(Vec2::new(0.0, 1.0)).len();
+                let avg = ((ux + uy) * 0.5).max(1e-6);
+                if avg.is_finite() { 1.0 / avg } else { 1.0 }
+            }
+            // World space strokes already operate in world units; pattern units match path units.
+            StrokeSpace::WorldSpace { .. } => 1.0,
+        },
+    }
+}
+
 /// Apply stroke pattern to a list of polylines.
 /// For now: only Dashed implemented (Dotted later).
-pub fn apply_stroke_pattern(polylines: &[PolyLine], pattern: &StrokePattern) -> Vec<PolyLine> {
+pub fn apply_stroke_pattern(
+    polylines: &[PolyLine],
+    pattern: &StrokePattern,
+    stroke_space: &StrokeSpace,
+    model: Mat3,
+) -> Vec<PolyLine> {
     match *pattern {
         StrokePattern::Dashed {
             dash_length,
             gap_length,
             phase,
             enabled,
+            space,
         } => {
             if !enabled {
                 return polylines.to_vec();
             }
+
+            // Convert pattern units into the path space so screen-space lengths stay stable.
+            let inv_scale = inv_pattern_scale(space, stroke_space, model);
+            let dash_length = dash_length * inv_scale;
+            let gap_length = gap_length * inv_scale;
+            let phase = phase * inv_scale;
 
             let mut out = Vec::new();
             for pl in polylines {
@@ -166,10 +199,17 @@ pub fn apply_stroke_pattern(polylines: &[PolyLine], pattern: &StrokePattern) -> 
             dot_radius,
             phase,
             enabled,
+            space,
         } => {
             if !enabled {
                 polylines.to_vec()
             } else {
+                // Convert pattern units into the path space so screen-space lengths stay stable.
+                let inv_scale = inv_pattern_scale(space, stroke_space, model);
+                let dot_space = dot_space * inv_scale;
+                let dot_radius = dot_radius * inv_scale;
+                let phase = phase * inv_scale;
+
                 let mut out = Vec::new();
                 for pl in polylines {
                     out.extend(dotted_polyline(pl, dot_space, dot_radius, phase));

@@ -76,11 +76,11 @@ impl<'a> Renderer<'a> {
     }
 
     pub fn stroke_path(&mut self, path: &Path, style: &StrokeStyle, model: Mat3) {
-        let Some(polylines) = self.flatten_path_to_polylines(path) else {
+        let Some(polylines) = self.flatten_path_to_polylines(path, style.curve_tolerance()) else {
             return;
         };
 
-        let patterned = apply_stroke_pattern(&polylines, style.pattern());
+        let patterned = apply_stroke_pattern(&polylines, style.pattern(), style.space(), model);
 
         for pl in &patterned {
             self.stroke_polyline(pl, style, model);

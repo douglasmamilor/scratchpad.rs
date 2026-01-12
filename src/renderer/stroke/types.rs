@@ -14,6 +14,16 @@ pub enum LineJoin {
     Round,
 }
 
+/// Which space pattern lengths/radii are defined in.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum PatternSpace {
+    /// Pattern lengths are in the same space as stroking (screen pixels for ScreenSpace strokes;
+    /// world units for WorldSpace strokes). This keeps dash/dot lengths stable under transforms.
+    StrokeSpace,
+    /// Pattern lengths are in the original path space. Model transforms will scale the pattern.
+    PathSpace,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum StrokeSpace {
     ScreenSpace { thickness: u64 },
@@ -27,12 +37,14 @@ pub enum StrokePattern {
         gap_length: f32,
         phase: f32,
         enabled: bool,
+        space: PatternSpace,
     },
     Dotted {
         dot_space: f32,
         dot_radius: f32,
         phase: f32,
         enabled: bool,
+        space: PatternSpace,
     },
 }
 
@@ -43,6 +55,7 @@ pub struct StrokeStyle {
     cap: LineCap,
     join: LineJoin,
     color: Color,
+    curve_tolerance: f32,
 }
 
 impl StrokeStyle {
@@ -57,10 +70,12 @@ impl StrokeStyle {
                 gap_length: 0.0,
                 phase: 0.0,
                 enabled: false,
+                space: PatternSpace::StrokeSpace,
             },
             cap: LineCap::Butt,
             join: LineJoin::Bevel,
             color,
+            curve_tolerance: 0.5,
         }
     }
 
@@ -85,6 +100,11 @@ impl StrokeStyle {
         self
     }
 
+    pub fn with_curve_tolerance(mut self, tolerance: f32) -> Self {
+        self.curve_tolerance = tolerance;
+        self
+    }
+
     // Accessors (useful outside the module while fields stay private)
     pub fn cap(&self) -> LineCap {
         self.cap
@@ -100,5 +120,8 @@ impl StrokeStyle {
     }
     pub fn pattern(&self) -> &StrokePattern {
         &self.pattern
+    }
+    pub fn curve_tolerance(&self) -> f32 {
+        self.curve_tolerance
     }
 }

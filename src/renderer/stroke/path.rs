@@ -19,7 +19,15 @@ pub struct Path {
 }
 
 impl<'a> Renderer<'a> {
-    pub fn flatten_path_to_polylines(&mut self, path: &Path) -> Option<Vec<PolyLine>> {
+    /// Flatten a path into polylines using a configurable flatness tolerance.
+    /// `tolerance` is the max distance control points may deviate from the chord
+    /// before subdivision; non-finite/<=0 fall back to a reasonable default.
+    pub fn flatten_path_to_polylines(&mut self, path: &Path, tolerance: f32) -> Option<Vec<PolyLine>> {
+        let tol = if tolerance.is_finite() && tolerance > 0.0 {
+            tolerance
+        } else {
+            0.5
+        };
         let mut polylines: Vec<PolyLine> = Vec::new();
         let mut current_points: Vec<Point2> = Vec::new();
         let mut current_point: Option<Point2> = None;
@@ -61,7 +69,7 @@ impl<'a> Renderer<'a> {
                     };
 
                     // flatten quadratic Bezier from: p0 → c → p2 (append-only points)
-                    let seg = flatten_quad(p0, *c, *p2, 0.5);
+                    let seg = flatten_quad(p0, *c, *p2, tol);
                     current_points.extend(seg);
                     current_point = Some(*p2);
                 }
@@ -78,7 +86,7 @@ impl<'a> Renderer<'a> {
                     };
 
                     // flatten cubic Bezier from: p0 → c1 → c2 → p3 (append-only points)
-                    let seg = flatten_cubic(p0, *c1, *c2, *p3, 0.5);
+                    let seg = flatten_cubic(p0, *c1, *c2, *p3, tol);
                     current_points.extend(seg);
                     current_point = Some(*p3);
                 }
