@@ -14,11 +14,13 @@ pub enum LineJoin {
     Round,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum StrokeSpace {
     ScreenSpace { thickness: u64 },
     WorldSpace { thickness: u64 },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum StrokePattern {
     Dashed {
         dash_length: f32,
@@ -34,6 +36,7 @@ pub enum StrokePattern {
     },
 }
 
+#[derive(Debug, Clone)]
 pub struct StrokeStyle {
     space: StrokeSpace,
     pattern: StrokePattern,

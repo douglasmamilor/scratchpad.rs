@@ -27,21 +27,20 @@ impl<'a> Renderer<'a> {
             return;
         }
 
-        // 1) Stroke all segments (your existing segment stroker)
-        //
-        // NOTE: Ideally interior segments should be stroked with Butt caps to avoid “double caps”.
-        // For now, keep it simple and rely on joins to visually connect.
+        // 1) Stroke all segments with butt caps to avoid double caps on interior joins.
+        // End caps are added explicitly for open polylines below.
+        let butt_style = style.clone().with_cap(LineCap::Butt);
         if !poly.is_closed() {
             for i in 0..(pts.len() - 1) {
-                let a = pts[i]; // Point2 is Vec2
-                let b = pts[i + 1]; // Point2 is Vec2
-                self.stroke_segment(a, b, style, model);
+                let a = pts[i];
+                let b = pts[i + 1];
+                self.stroke_segment(a, b, &butt_style, model);
             }
         } else {
             for i in 0..pts.len() {
                 let a = pts[i];
                 let b = pts[(i + 1) % pts.len()];
-                self.stroke_segment(a, b, style, model);
+                self.stroke_segment(a, b, &butt_style, model);
             }
         }
 
@@ -65,6 +64,15 @@ impl<'a> Renderer<'a> {
                 self.emit_join_abc(a, b, c, style, model);
             }
         }
+
+        // 3) Caps for open polylines: draw the requested cap style only at endpoints.
+        if !poly.is_closed() && style.cap() != LineCap::Butt {
+            let dir_start = pts[1] - pts[0];
+            self.emit_cap(pts[0], -dir_start, style, model);
+
+            let dir_end = pts[pts.len() - 1] - pts[pts.len() - 2];
+            self.emit_cap(pts[pts.len() - 1], dir_end, style, model);
+        }
     }
 
     pub fn stroke_path(&mut self, path: &Path, style: &StrokeStyle, model: Mat3) {
@@ -76,6 +84,69 @@ impl<'a> Renderer<'a> {
 
         for pl in &patterned {
             self.stroke_polyline(pl, style, model);
+        }
+    }
+
+    /// Draw a single cap at `point` extending outward along `dir_out`.
+    fn emit_cap(&mut self, point: Vec2, dir_out: Vec2, style: &StrokeStyle, model: Mat3) {
+        if style.cap() == LineCap::Butt {
+            return;
+        }
+
+        let (pt_work, dir_work, half, model_for_tris, round_caps) = match *style.space() {
+            StrokeSpace::ScreenSpace { thickness } => {
+                let p_s = model.transform_vec2(point);
+                let d_s = model.transform_vec2_direction(dir_out);
+                (
+                    p_s,
+                    d_s,
+                    0.5 * (thickness as f32),
+                    Mat3::IDENTITY,
+                    RoundCapMode::ScreenFullDisk,
+                )
+            }
+            StrokeSpace::WorldSpace { thickness } => (
+                point,
+                dir_out,
+                0.5 * (thickness as f32),
+                model,
+                RoundCapMode::WorldHalfDisk,
+            ),
+        };
+
+        if !half.is_finite() || half <= 0.0 {
+            return;
+        }
+
+        let d_len = dir_work.len();
+        if !d_len.is_finite() || d_len <= 1e-6 {
+            return;
+        }
+        let d_hat = dir_work / d_len;
+        let n = Vec2::new(-d_hat.y, d_hat.x);
+        let offset = n * half;
+
+        match style.cap() {
+            LineCap::Butt => {}
+            LineCap::Square => {
+                // Rectangle of length = half, extending outward along dir_out.
+                let p0 = pt_work + offset;
+                let p1 = pt_work - offset;
+                let p2 = pt_work - d_hat * half - offset;
+                let p3 = pt_work - d_hat * half + offset;
+                self.fill_triangle(p0, p1, p2, style.color(), model_for_tris);
+                self.fill_triangle(p0, p2, p3, style.color(), model_for_tris);
+            }
+            LineCap::Round => {
+                match round_caps {
+                    RoundCapMode::ScreenFullDisk => {
+                        self.fill_circle(pt_work, half, style.color(), Mat3::IDENTITY);
+                    }
+                    RoundCapMode::WorldHalfDisk => {
+                        self.fill_transformed_half_disc(pt_work, d_hat, half, style.color(), model_for_tris);
+                    }
+                }
+            }
         }
     }
 
