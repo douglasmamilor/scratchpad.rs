@@ -1,10 +1,10 @@
-use crate::{Point2, Vec2};
+use crate::Point2;
 
-pub fn point_in_polygon(p: Point2, vertices: &[Vec2]) -> bool {
+pub fn point_in_polygon(p: Point2, vertices: &[Point2]) -> bool {
     let mut crossings = 0;
 
-    for edge in vertices.windows(2) {
-        let (a, b) = (edge[0], edge[1]);
+    for i in 0..vertices.len() {
+        let (a, b) = (vertices[0], vertices[(i + 1) % vertices.len()]);
 
         if (a.y > p.y) != (b.y > p.y) {
             let t = (p.y - a.y) / (b.y - a.y);
