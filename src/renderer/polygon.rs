@@ -161,7 +161,8 @@ impl<'a> Renderer<'a> {
                 active_edge_table.extend(edges_starting_here.iter().cloned());
             }
 
-            // Drop edges whose y_max is at or below the scanline (i.e no longer cover it)
+            // Keep edges whose y_max is above the scanline.
+            // Drop those whose y_max is at or below the scanline
             active_edge_table.retain(|e| e.y_max > scan_line);
 
             // Sort current x
