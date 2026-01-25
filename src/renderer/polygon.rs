@@ -1,6 +1,6 @@
 use core::f32;
 
-use crate::math::Point2;
+use crate::Point2;
 
 use super::Renderer;
 use crate::color::Color;
