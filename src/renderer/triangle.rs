@@ -73,6 +73,12 @@ impl<'a> Renderer<'a> {
     /// ); // skipped (collinear)
     /// ```
     pub fn fill_triangle(&mut self, a: Vec2, b: Vec2, c: Vec2, color: Color, model: Mat3) {
+        // Early out to AA path if enabled (flat color).
+        if self.aa_triangles {
+            self.fill_triangle_aa(a, b, c, color, model);
+            return;
+        }
+
         // Transform first; all raster decisions are in screen space.
         let a_s = model.transform_vec2(a);
         let b_s = model.transform_vec2(b);
@@ -203,6 +209,62 @@ impl<'a> Renderer<'a> {
             self.hspan(y, x_start, x_end, color);
             x1 += inv_slope_1;
             x2 += inv_slope_2;
+        }
+    }
+
+    /// Simple triangle edge AA via 2x2 supersampling at pixel corners and blending by coverage.
+    /// This is a single-color variant; depth not handled here.
+    pub fn fill_triangle_aa(&mut self, a: Vec2, b: Vec2, c: Vec2, color: Color, model: Mat3) {
+        // Transform to screen space
+        let a_s = model.transform_vec2(a);
+        let b_s = model.transform_vec2(b);
+        let c_s = model.transform_vec2(c);
+
+        // Degenerate check
+        let area2 = (b_s - a_s).cross(c_s - a_s);
+        if !area2.is_finite() || area2.abs() < 1e-6 {
+            return;
+        }
+        let area_pos = area2 > 0.0;
+
+        // Bounding box
+        let min_x = a_s.x.min(b_s.x).min(c_s.x).floor() as i32;
+        let max_x = a_s.x.max(b_s.x).max(c_s.x).ceil() as i32;
+        let min_y = a_s.y.min(b_s.y).min(c_s.y).floor() as i32;
+        let max_y = a_s.y.max(b_s.y).max(c_s.y).ceil() as i32;
+
+        // Subpixel sample offsets
+        let samples: &[(f32, f32)] = if self.aa_supersample {
+            &[(0.25f32, 0.25f32), (0.75, 0.25), (0.25, 0.75), (0.75, 0.75)]
+        } else {
+            &[(0.5, 0.5)]
+        };
+
+        for y in min_y..max_y {
+            for x in min_x..max_x {
+                let mut hit = 0;
+                for (ox, oy) in samples {
+                    let px = x as f32 + ox;
+                    let py = y as f32 + oy;
+
+                    let w0 = (b_s.x - a_s.x) * (py - a_s.y) - (b_s.y - a_s.y) * (px - a_s.x);
+                    let w1 = (c_s.x - b_s.x) * (py - b_s.y) - (c_s.y - b_s.y) * (px - b_s.x);
+                    let w2 = (a_s.x - c_s.x) * (py - c_s.y) - (a_s.y - c_s.y) * (px - c_s.x);
+
+                    if area_pos {
+                        if w0 >= 0.0 && w1 >= 0.0 && w2 >= 0.0 {
+                            hit += 1;
+                        }
+                    } else if w0 <= 0.0 && w1 <= 0.0 && w2 <= 0.0 {
+                        hit += 1;
+                    }
+                }
+
+                if hit > 0 {
+                    let cov = hit as f32 / samples.len() as f32;
+                    self.blend_coverage(x, y, color, cov);
+                }
+            }
         }
     }
 }

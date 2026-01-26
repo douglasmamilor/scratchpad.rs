@@ -39,6 +39,9 @@ pub struct Renderer<'a> {
     depth_buffer: DepthBuffer,
     depth_state: DepthState,
     scissor: Option<Scissor>,
+    aa_triangles: bool,
+    aa_supersample: bool,
+    aa_gamma: bool,
 }
 
 impl<'a> Renderer<'a> {
@@ -51,6 +54,9 @@ impl<'a> Renderer<'a> {
             depth_buffer,
             depth_state,
             scissor: None,
+            aa_triangles: false,
+            aa_supersample: true, // when AA enabled, default to 2x2 SSAA
+            aa_gamma: true,
         }
     }
 
@@ -102,6 +108,21 @@ impl<'a> Renderer<'a> {
     /// Disable scissoring.
     pub fn clear_scissor(&mut self) {
         self.scissor = None;
+    }
+
+    /// Toggle simple triangle anti-aliasing (off by default).
+    pub fn set_triangle_aa_enabled(&mut self, enabled: bool) {
+        self.aa_triangles = enabled;
+    }
+
+    /// Choose whether triangle AA uses 2x2 supersampling (default true when AA is enabled).
+    pub fn set_triangle_aa_supersample(&mut self, enabled: bool) {
+        self.aa_supersample = enabled;
+    }
+
+    /// Enable/disable gamma-aware blending for AA edges (default true).
+    pub fn set_triangle_aa_gamma(&mut self, enabled: bool) {
+        self.aa_gamma = enabled;
     }
 
     /// Returns the active clip rect (scissor if set, otherwise full viewport),
@@ -205,6 +226,47 @@ impl<'a> Renderer<'a> {
             self.framebuffer
                 .set_pixel(point.0 as usize, point.1 as usize, color.to_u32());
         }
+    }
+
+    /// Alpha blend `src` over the destination at (x, y) with the given coverage in [0, 1].
+    #[inline]
+    fn blend_coverage(&mut self, x: i32, y: i32, src: Color, coverage: f32) {
+        if coverage <= 0.0 {
+            return;
+        }
+        if !self.in_clip(x, y) {
+            return;
+        }
+
+        let cov = coverage.clamp(0.0, 1.0);
+        let dst = self
+            .framebuffer
+            .get_pixel(x as usize, y as usize)
+            .map(Color::from_u32)
+            .unwrap_or(Color::TRANSPARENT);
+
+        let blend_chan = |s: u8, d: u8| -> u8 {
+            if self.aa_gamma {
+                let sf = (s as f32 / 255.0).powf(2.2);
+                let df = (d as f32 / 255.0).powf(2.2);
+                let lin = sf * cov + df * (1.0 - cov);
+                (lin.powf(1.0 / 2.2) * 255.0).round().clamp(0.0, 255.0) as u8
+            } else {
+                let sf = s as f32;
+                let df = d as f32;
+                ((sf * cov + df * (1.0 - cov)).round()).clamp(0.0, 255.0) as u8
+            }
+        };
+
+        let out = Color {
+            r: blend_chan(src.r, dst.r),
+            g: blend_chan(src.g, dst.g),
+            b: blend_chan(src.b, dst.b),
+            a: 255,
+        };
+
+        self.framebuffer
+            .set_pixel(x as usize, y as usize, out.to_u32());
     }
 
     #[inline]
@@ -337,5 +399,24 @@ mod tests {
             }
         }
         assert!(inside_count > 0, "Triangle produced no pixels inside scissor");
+    }
+
+    #[test]
+    fn aa_triangle_hits_subpixel_corner() {
+        let mut fb = FrameBuffer::new(2, 2);
+        let mut r = Renderer::new(&mut fb);
+        r.clear(Color::TRANSPARENT);
+
+        // Tiny triangle in the bottom-left pixel corner.
+        r.fill_triangle_aa(
+            Vec2::new(0.1, 0.1),
+            Vec2::new(0.9, 0.1),
+            Vec2::new(0.1, 0.9),
+            Color::WHITE,
+            Mat3::IDENTITY,
+        );
+
+        // Expect pixel (0,0) to have some coverage.
+        assert!(fb.get_pixel(0, 0).unwrap_or(0) != 0);
     }
 }
