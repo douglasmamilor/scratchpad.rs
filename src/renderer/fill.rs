@@ -43,7 +43,7 @@ impl<'a> Renderer<'a> {
 
         while let Some((y, xl, xr)) = stack.pop() {
             for &yn in &[y - 1, y + 1] {
-                if !self.in_bounds_y(yn) {
+                if yn < 0 || yn >= self.height() as i32 {
                     continue;
                 }
 

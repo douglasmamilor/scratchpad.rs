@@ -1,4 +1,4 @@
-use crate::{Point2, Rect, Vec2};
+use crate::{Point2, Rect};
 
 #[derive(Copy, Clone, Debug)]
 pub enum Edge {
@@ -27,7 +27,7 @@ pub fn point_in_polygon(p: Point2, vertices: &[Point2]) -> bool {
     (crossings % 2) == 1
 }
 
-fn inside(p: Vec2, rect: Rect, edge: Edge) -> bool {
+fn inside(p: Point2, rect: Rect, edge: Edge) -> bool {
     match edge {
         Edge::Left => p.x >= rect.x,
         Edge::Right => p.x <= rect.x + rect.width,
@@ -36,7 +36,7 @@ fn inside(p: Vec2, rect: Rect, edge: Edge) -> bool {
     }
 }
 
-fn intersect(s: Vec2, e: Vec2, rect: Rect, edge: Edge) -> Vec2 {
+fn intersect(s: Point2, e: Point2, rect: Rect, edge: Edge) -> Point2 {
     let dx = e.x - s.x;
     let dy = e.y - s.y;
     let x_min = rect.x;
@@ -47,7 +47,7 @@ fn intersect(s: Vec2, e: Vec2, rect: Rect, edge: Edge) -> Vec2 {
     match edge {
         Edge::Left => {
             let t = (x_min - s.x) / dx;
-            Vec2 {
+            Point2 {
                 x: x_min,
                 y: s.y + t * dy,
             }
@@ -55,7 +55,7 @@ fn intersect(s: Vec2, e: Vec2, rect: Rect, edge: Edge) -> Vec2 {
 
         Edge::Right => {
             let t = (x_max - s.x) / dx;
-            Vec2 {
+            Point2 {
                 x: x_max,
                 y: s.y + t * dy,
             }
@@ -63,7 +63,7 @@ fn intersect(s: Vec2, e: Vec2, rect: Rect, edge: Edge) -> Vec2 {
 
         Edge::Bottom => {
             let t = (y_min - s.y) / dy;
-            Vec2 {
+            Point2 {
                 x: s.x + t * dx,
                 y: y_min,
             }
@@ -71,7 +71,7 @@ fn intersect(s: Vec2, e: Vec2, rect: Rect, edge: Edge) -> Vec2 {
 
         Edge::Top => {
             let t = (y_max - s.y) / dy;
-            Vec2 {
+            Point2 {
                 x: s.x + t * dx,
                 y: y_max,
             }
@@ -79,7 +79,7 @@ fn intersect(s: Vec2, e: Vec2, rect: Rect, edge: Edge) -> Vec2 {
     }
 }
 
-fn clip_against_edge(input: &[Vec2], rect: Rect, edge: Edge) -> Vec<Vec2> {
+fn clip_against_edge(input: &[Point2], rect: Rect, edge: Edge) -> Vec<Point2> {
     let mut output = Vec::new();
 
     if input.is_empty() {
@@ -123,7 +123,7 @@ fn clip_against_edge(input: &[Vec2], rect: Rect, edge: Edge) -> Vec<Vec2> {
     output
 }
 
-pub fn clip_polygon(poly: &[Vec2], rect: Rect) -> Vec<Vec2> {
+pub fn clip_polygon(poly: &[Point2], rect: Rect) -> Vec<Point2> {
     let poly = clip_against_edge(poly, rect, Edge::Left);
     let poly = clip_against_edge(&poly, rect, Edge::Right);
     let poly = clip_against_edge(&poly, rect, Edge::Bottom);

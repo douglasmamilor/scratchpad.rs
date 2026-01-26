@@ -1,10 +1,11 @@
 use core::f32;
 
-use crate::Point2;
+use crate::{Point2, Vec2};
 
 use super::Renderer;
 use crate::color::Color;
-use crate::math::{Mat3, vec2::Vec2};
+use crate::math::space::clip::clip_polygon;
+use crate::math::Mat3;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Edge {
@@ -91,8 +92,18 @@ impl<'a> Renderer<'a> {
     }
 
     pub fn fill_polygon(&mut self, vertices: Vec<Point2>, color: Color, fill_rule: FillRule) {
+        let mut vertices = vertices;
         if vertices.len() < 3 {
             return;
+        }
+
+        // Clip to the active viewport/scissor rect, if any.
+        if let Some(clip_rect) = self.active_clip_rect() {
+            let clipped = clip_polygon(&vertices, clip_rect);
+            if clipped.len() < 3 {
+                return;
+            }
+            vertices = clipped;
         }
 
         if let Some(etr) = self.build_edge_table(vertices) {
