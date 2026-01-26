@@ -1,6 +1,7 @@
 use super::Renderer;
 use crate::color::Color;
-use crate::math::{Mat3, barycentric, vec2::Vec2};
+use crate::math::{Mat3, Point2, barycentric, vec2::Vec2};
+use crate::math::space::clip::clip_polygon;
 
 impl<'a> Renderer<'a> {
     /// Fill a triangle with per-vertex colors using barycentric interpolation.
@@ -70,9 +71,28 @@ impl<'a> Renderer<'a> {
         model: Mat3,
     ) {
         // Transform vertices to screen space
-        let a_s = model.transform_vec2(a);
-        let b_s = model.transform_vec2(b);
-        let c_s = model.transform_vec2(c);
+        let mut a_s = model.transform_vec2(a);
+        let mut b_s = model.transform_vec2(b);
+        let mut c_s = model.transform_vec2(c);
+
+        // Optional clipping to active viewport/scissor. If clipping produces exactly
+        // one triangle, use it; if it produces more verts, fall back to scissor-only.
+        if let Some(clip_rect) = self.active_clip_rect() {
+            let pts = [
+                Point2::new(a_s.x, a_s.y),
+                Point2::new(b_s.x, b_s.y),
+                Point2::new(c_s.x, c_s.y),
+            ];
+            let clipped = clip_polygon(&pts, clip_rect);
+            if clipped.len() < 3 {
+                return;
+            }
+            if clipped.len() == 3 {
+                a_s = Vec2::new(clipped[0].x, clipped[0].y);
+                b_s = Vec2::new(clipped[1].x, clipped[1].y);
+                c_s = Vec2::new(clipped[2].x, clipped[2].y);
+            }
+        }
 
         // Sort vertices by Y, keeping colors aligned
         let mut vertices = [(a_s, color_a), (b_s, color_b), (c_s, color_c)];
