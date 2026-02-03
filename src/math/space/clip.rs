@@ -36,6 +36,8 @@ fn inside(p: Point2, rect: Rect, edge: Edge) -> bool {
     }
 }
 
+/// Calculates the intersection point of the line segment from s (start) to e (end)
+/// with the specified edge of the rectangle.
 fn intersect(s: Point2, e: Point2, rect: Rect, edge: Edge) -> Point2 {
     let dx = e.x - s.x;
     let dy = e.y - s.y;
@@ -79,6 +81,7 @@ fn intersect(s: Point2, e: Point2, rect: Rect, edge: Edge) -> Point2 {
     }
 }
 
+/// Clips a polygon against a single edge of the rectangle using the Sutherland-Hodgman algorithm.
 fn clip_against_edge(input: &[Point2], rect: Rect, edge: Edge) -> Vec<Point2> {
     let mut output = Vec::new();
 
@@ -86,6 +89,8 @@ fn clip_against_edge(input: &[Point2], rect: Rect, edge: Edge) -> Vec<Point2> {
         return output;
     }
 
+    // Start with the last vertex as the starting point to avoid missing the edge between the last
+    // and first vertex. This ensures a closed polygon.
     let mut s = input[input.len() - 1];
 
     for &e in input {
