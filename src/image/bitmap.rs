@@ -89,7 +89,7 @@ impl<'a> BitmapDecoder<'a> {
         assert_eq!(compression, 0); // 0 == 'BI_RGB' (no compression) according to BMP spec
 
         let bits_per_pixel = u16::from_le_bytes([info[14], info[15]]);
-        assert!(bits_per_pixel == 24); // only support 24-bit
+        assert!(bits_per_pixel == 24); // only support 24-bit at the moment
 
         let data_offset = u32::from_le_bytes([header[10], header[11], header[12], header[13]]);
 
@@ -161,5 +161,61 @@ impl<'a> From<BitmapDecoder<'a>> for Image {
                 crate::image::PixelFormat::Rgb8
             },
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decode_bitmap() {
+        // File header
+        let mut bmp: Vec<u8> = vec![
+            0x42, 0x4D, // 'BM'
+            70, 0, 0, 0, // file size = 70 bytes
+            0, 0, 0, 0, // reserved
+            54, 0, 0, 0, // data offset = 54
+            // DIB header (BITMAPINFOHEADER)
+            40, 0, 0, 0, // header size
+            2, 0, 0, 0, // width = 2
+            2, 0, 0, 0, // height = 2 (positive => bottom-up)
+            1, 0, // planes
+            24, 0, // bpp = 24
+            0, 0, 0, 0, // compression = 0 (BI_RGB)
+            0, 0, 0, 0, // image size (can be 0 for BI_RGB)
+            0, 0, 0, 0, // x ppm (unused)
+            0, 0, 0, 0, // y ppm (unused)
+            0, 0, 0, 0, // colors used
+            0, 0, 0, 0, // important colors
+        ];
+        // Pixel data (bottom row first), each row padded to 8 bytes.
+        // Row 0 (bottom): B,G,R pixels: (blue), (green)
+        bmp.extend_from_slice(&[
+            255, 0, 0, 0, 255, 0, 0, 0, // pad to 8 bytes
+        ]);
+        // Row 1 (top): (red), (white)
+        bmp.extend_from_slice(&[
+            0, 0, 255, 255, 255, 255, 0, 0, // pad
+        ]);
+
+        let dec = BitmapDecoder::new(&bmp);
+
+        assert_eq!(dec.width(), 2);
+        assert_eq!(dec.height(), 2);
+        assert_eq!(dec.bits_per_pixel(), 24);
+        assert_eq!(dec.bytes_per_pixel(), 3);
+        assert_eq!(dec.data_offset(), 54);
+        assert_eq!(dec.data_size(), 16); // 2 rows * 8 bytes per row
+        assert!(!dec.is_top_down());
+        assert_eq!(dec.row_stride(), 8); // align_up_pow2 will have rounded 6 bytes up to 8
+        assert_eq!(dec.pixel_count(), 4);
+        assert_eq!(dec.byte_count(), 12); // 4 pixels * 3 bytes per pixel
+        assert!(!dec.has_alpha());
+
+        let img: Image = dec.into();
+        assert_eq!(img.format(), &crate::image::PixelFormat::Rgb8);
+        assert_eq!(img.width(), 2);
+        assert_eq!(img.height(), 2);
     }
 }

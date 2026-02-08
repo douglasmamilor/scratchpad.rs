@@ -11,6 +11,7 @@ pub struct Image {
     format: PixelFormat,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum PixelFormat {
     Rgba8,
     Rgb8,
