@@ -22,7 +22,11 @@ impl<'a> Renderer<'a> {
     /// Flatten a path into polylines using a configurable flatness tolerance.
     /// `tolerance` is the max distance control points may deviate from the chord
     /// before subdivision; non-finite/<=0 fall back to a reasonable default.
-    pub fn flatten_path_to_polylines(&mut self, path: &Path, tolerance: f32) -> Option<Vec<PolyLine>> {
+    pub fn flatten_path_to_polylines(
+        &mut self,
+        path: &Path,
+        tolerance: f32,
+    ) -> Option<Vec<PolyLine>> {
         let tol = if tolerance.is_finite() && tolerance > 0.0 {
             tolerance
         } else {

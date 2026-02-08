@@ -1,7 +1,7 @@
 use super::Renderer;
-use crate::color::Color;
-use crate::math::{Mat3, Point2, barycentric, vec2::Vec2};
+use crate::Color;
 use crate::math::space::clip::clip_polygon;
+use crate::math::{Mat3, Point2, barycentric, vec2::Vec2};
 
 impl<'a> Renderer<'a> {
     /// Fill a triangle with per-vertex colors using barycentric interpolation.
@@ -47,7 +47,9 @@ impl<'a> Renderer<'a> {
         color_c: Color,
         model: Mat3,
     ) {
-        self.fill_triangle_colored_with_depth(a, b, c, color_a, color_b, color_c, 0.0, 0.0, 0.0, model);
+        self.fill_triangle_colored_with_depth(
+            a, b, c, color_a, color_b, color_c, 0.0, 0.0, 0.0, model,
+        );
     }
 
     /// Fill a triangle with per-vertex colors and per-vertex depth using
@@ -116,14 +118,14 @@ impl<'a> Renderer<'a> {
 
         if A.y == B.y {
             self.fill_flat_top_colored(
-                A, B, C, color_A, color_B, color_C, a_s, b_s, c_s, inv_denom,
-                depth_a, depth_b, depth_c,
+                A, B, C, color_A, color_B, color_C, a_s, b_s, c_s, inv_denom, depth_a, depth_b,
+                depth_c,
             );
             return;
         } else if B.y == C.y {
             self.fill_flat_bottom_colored(
-                A, B, C, color_A, color_B, color_C, a_s, b_s, c_s, inv_denom,
-                depth_a, depth_b, depth_c,
+                A, B, C, color_A, color_B, color_C, a_s, b_s, c_s, inv_denom, depth_a, depth_b,
+                depth_c,
             );
             return;
         }
@@ -141,12 +143,12 @@ impl<'a> Renderer<'a> {
             let depth_D = barycentric::interpolate_f32(&coords_d, depth_a, depth_b, depth_c);
 
             self.fill_flat_bottom_colored(
-                A, B, D, color_A, color_B, color_D, a_s, b_s, c_s, inv_denom,
-                depth_a, depth_b, depth_D,
+                A, B, D, color_A, color_B, color_D, a_s, b_s, c_s, inv_denom, depth_a, depth_b,
+                depth_D,
             );
             self.fill_flat_top_colored(
-                B, D, C, color_B, color_D, color_C, a_s, b_s, c_s, inv_denom,
-                depth_b, depth_D, depth_c,
+                B, D, C, color_B, color_D, color_C, a_s, b_s, c_s, inv_denom, depth_b, depth_D,
+                depth_c,
             );
         }
     }
@@ -285,12 +287,7 @@ impl<'a> Renderer<'a> {
                 let u = 1.0 - v - w;
 
                 let coords = barycentric::BarycentricCoords { u, v, w };
-                let color = barycentric::interpolate_color(
-                    &coords,
-                    color_A,
-                    color_B,
-                    color_C,
-                );
+                let color = barycentric::interpolate_color(&coords, color_A, color_B, color_C);
 
                 let depth = barycentric::interpolate_f32(&coords, depth_a, depth_b, depth_c);
 

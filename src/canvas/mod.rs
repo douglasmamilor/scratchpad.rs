@@ -1,5 +1,5 @@
 use crate::{
-    color::Color,
+    Color,
     math::{Mat3, Vec2},
     renderer::Renderer,
     transform::TransformStack,

@@ -1,4 +1,4 @@
-use crate::color::Color;
+use crate::Color;
 use crate::math::{Mat3, vec2::Vec2};
 use crate::renderer::{Renderer, quantize_hspan, quantize_point, quantize_vspan};
 

@@ -1,5 +1,5 @@
 use super::Renderer;
-use crate::color::Color;
+use crate::Color;
 
 impl<'a> Renderer<'a> {
     pub fn flood_fill<F>(&mut self, px: (i32, i32), new_color: Color, matches: F, conn_8: bool)

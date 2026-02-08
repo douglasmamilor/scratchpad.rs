@@ -1,4 +1,4 @@
-use crate::color::Color;
+use crate::Color;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LineCap {

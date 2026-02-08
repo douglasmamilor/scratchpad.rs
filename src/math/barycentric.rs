@@ -1,4 +1,4 @@
-use crate::color::Color;
+use crate::Color;
 use crate::math::Vec2;
 
 pub struct BarycentricCoords {

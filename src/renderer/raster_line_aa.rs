@@ -1,5 +1,5 @@
 use super::Renderer;
-use crate::color::Color;
+use crate::Color;
 use crate::math::{Mat3, vec2::Vec2};
 
 #[inline]

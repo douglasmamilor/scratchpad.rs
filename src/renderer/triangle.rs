@@ -1,7 +1,7 @@
 use super::{FillRule, Renderer};
-use crate::color::Color;
-use crate::math::{Mat3, Point2, vec2::Vec2};
+use crate::Color;
 use crate::math::space::clip::clip_polygon;
+use crate::math::{Mat3, Point2, vec2::Vec2};
 
 impl<'a> Renderer<'a> {
     /// Draw a triangle outline using three vertices.
@@ -105,7 +105,11 @@ impl<'a> Renderer<'a> {
         // produces a polygon with >3 verts, fall back to polygon fill.
         let mut vertices = [a_s, b_s, c_s];
         if let Some(clip_rect) = self.active_clip_rect() {
-            let pts = [Point2::new(a_s.x, a_s.y), Point2::new(b_s.x, b_s.y), Point2::new(c_s.x, c_s.y)];
+            let pts = [
+                Point2::new(a_s.x, a_s.y),
+                Point2::new(b_s.x, b_s.y),
+                Point2::new(c_s.x, c_s.y),
+            ];
             let clipped = clip_polygon(&pts, clip_rect);
             if clipped.len() < 3 {
                 return;

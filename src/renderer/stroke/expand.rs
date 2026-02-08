@@ -2,7 +2,7 @@ use crate::math::{EPS, angle_delta};
 use crate::renderer::stroke::path::Path;
 use crate::renderer::stroke::types::{LineCap, StrokeSpace, StrokeStyle};
 use crate::renderer::{LineJoin, PolyLine, apply_stroke_pattern};
-use crate::{Mat3, Vec2, color::Color, renderer::Renderer};
+use crate::{Color, Mat3, Vec2, renderer::Renderer};
 
 #[derive(Clone, Copy)]
 enum JoinRoundMode {
@@ -137,16 +137,20 @@ impl<'a> Renderer<'a> {
                 self.fill_triangle(p0, p1, p2, style.color(), model_for_tris);
                 self.fill_triangle(p0, p2, p3, style.color(), model_for_tris);
             }
-            LineCap::Round => {
-                match round_caps {
-                    RoundCapMode::ScreenFullDisk => {
-                        self.fill_circle(pt_work, half, style.color(), Mat3::IDENTITY);
-                    }
-                    RoundCapMode::WorldHalfDisk => {
-                        self.fill_transformed_half_disc(pt_work, d_hat, half, style.color(), model_for_tris);
-                    }
+            LineCap::Round => match round_caps {
+                RoundCapMode::ScreenFullDisk => {
+                    self.fill_circle(pt_work, half, style.color(), Mat3::IDENTITY);
                 }
-            }
+                RoundCapMode::WorldHalfDisk => {
+                    self.fill_transformed_half_disc(
+                        pt_work,
+                        d_hat,
+                        half,
+                        style.color(),
+                        model_for_tris,
+                    );
+                }
+            },
         }
     }
 
@@ -597,7 +601,7 @@ enum RoundCapMode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::color::Color;
+    use crate::Color;
     use crate::framebuffer::FrameBuffer;
     use crate::math::Point2;
     use crate::renderer::{LineCap, LineJoin, PolyLine, Renderer, StrokeSpace, StrokeStyle};

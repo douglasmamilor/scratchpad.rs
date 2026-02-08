@@ -8,7 +8,7 @@ mod polyline;
 mod raster_line;
 mod raster_line_aa;
 mod rectangle;
-pub mod stroke;
+mod stroke;
 mod triangle;
 mod triangle_barycentric;
 
@@ -18,13 +18,9 @@ pub use polyline::PolyLine;
 pub use stroke::pattern::apply_stroke_pattern;
 pub use stroke::types::{LineCap, LineJoin, PatternSpace, StrokePattern, StrokeSpace, StrokeStyle};
 
-use crate::color::Color;
+use crate::Color;
 use crate::framebuffer::{DepthBuffer, DepthFunc, DepthState, FrameBuffer};
 use crate::math::Rect;
-#[cfg(test)]
-#[cfg(test)]
-use crate::{Mat3, Vec2};
-
 #[derive(Clone, Copy, Debug)]
 struct Scissor {
     /// Half-open integer bounds in screen space: [x0, x1), [y0, y1)
@@ -345,6 +341,7 @@ impl<'a> Renderer<'a> {
 mod tests {
     use super::*;
     use crate::framebuffer::FrameBuffer;
+    use crate::{Mat3, Vec2};
 
     fn solid_rect_pixels(fb: &FrameBuffer) -> usize {
         fb.pixels.iter().filter(|&&p| p != 0).count()
@@ -360,7 +357,12 @@ mod tests {
         r.set_scissor(Rect::new(2.0, 2.0, 4.0, 4.0)); // covers x=2..5, y=2..5
 
         // Draw a big rect covering the whole buffer.
-        r.fill_rect(Vec2::new(0.0, 0.0), Vec2::new(10.0, 10.0), Color::WHITE, Mat3::IDENTITY);
+        r.fill_rect(
+            Vec2::new(0.0, 0.0),
+            Vec2::new(10.0, 10.0),
+            Color::WHITE,
+            Mat3::IDENTITY,
+        );
 
         // Only scissored area should be filled: 4x4 = 16 pixels.
         assert_eq!(solid_rect_pixels(&fb), 16);
@@ -398,7 +400,10 @@ mod tests {
                 }
             }
         }
-        assert!(inside_count > 0, "Triangle produced no pixels inside scissor");
+        assert!(
+            inside_count > 0,
+            "Triangle produced no pixels inside scissor"
+        );
     }
 
     #[test]

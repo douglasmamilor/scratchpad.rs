@@ -3,9 +3,9 @@ use core::f32;
 use crate::{Point2, Vec2};
 
 use super::Renderer;
-use crate::color::Color;
-use crate::math::space::clip::clip_polygon;
+use crate::Color;
 use crate::math::Mat3;
+use crate::math::space::clip::clip_polygon;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Edge {

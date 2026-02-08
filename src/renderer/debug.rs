@@ -1,7 +1,9 @@
-use crate::color::Color;
+use crate::Color;
 use crate::renderer::Renderer;
 
 impl<'a> Renderer<'a> {
+    /// Debug function to visualize the depth buffer.
+    /// It maps depth values to grayscale colors between the specified near and far planes.
     pub fn debug_draw_depth(&mut self, near: f32, far: f32) {
         let (w, h) = (self.width(), self.height());
 

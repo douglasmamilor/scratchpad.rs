@@ -10,6 +10,8 @@ pub fn deg_ro_rad(deg: f32) -> f32 {
     deg * (std::f32::consts::PI / 180.0)
 }
 
+/// Find the distance from a point to a line defined by two points.
+/// Based on the formula: https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
 pub fn distance_point_to_line(p: Point2, line: (Point2, Point2)) -> f32 {
     let (a, b) = (line.0, line.1);
 
