@@ -9,6 +9,7 @@ mod raster_line;
 mod raster_line_aa;
 mod rectangle;
 mod stroke;
+mod texture;
 mod triangle;
 mod triangle_barycentric;
 
@@ -17,6 +18,7 @@ pub use polygon::FillRule;
 pub use polyline::PolyLine;
 pub use stroke::pattern::apply_stroke_pattern;
 pub use stroke::types::{LineCap, LineJoin, PatternSpace, StrokePattern, StrokeSpace, StrokeStyle};
+pub use texture::{SamplingMode, Texture};
 
 use crate::Color;
 use crate::framebuffer::{DepthBuffer, DepthFunc, DepthState, FrameBuffer};

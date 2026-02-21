@@ -1,4 +1,4 @@
-use super::{FillRule, Renderer};
+use super::{FillRule, Renderer, SamplingMode, Texture};
 use crate::Color;
 use crate::math::space::clip::clip_polygon;
 use crate::math::{Mat3, Point2, vec2::Vec2};
@@ -96,7 +96,8 @@ impl<'a> Renderer<'a> {
         }
 
         // Reject degenerate/zero-area triangles up front (prevents div-by-zero below).
-        let area2 = (b_s.x - a_s.x) * (c_s.y - a_s.y) - (b_s.y - a_s.y) * (c_s.x - a_s.x);
+        let area2 = (b_s - a_s).cross(c_s - a_s);
+
         if !area2.is_finite() || area2.abs() < 1e-6 {
             return;
         }
@@ -159,6 +160,116 @@ impl<'a> Renderer<'a> {
 
         self.fill_flat_bottom(A, B, D, color);
         self.fill_flat_top(B, D, C, color);
+    }
+
+    /// Fill a triangle with a texture using barycentric UVs.
+    ///
+    /// Applies an optional sampling mode (nearest or bilinear) and respects the current scissor/viewport.
+    /// Degenerate triangles are skipped.
+    /// Intentionally avoids using utility functions since this is a hot inner loop and we want to
+    /// minimize temporary allocations and redundant checks.
+    #[allow(clippy::too_many_arguments)]
+    pub fn fill_triangle_textured(
+        &mut self,
+        a: Vec2,
+        b: Vec2,
+        c: Vec2,
+        uv_a: Vec2,
+        uv_b: Vec2,
+        uv_c: Vec2,
+        texture: &Texture,
+        sampling: SamplingMode,
+        model: Mat3,
+    ) {
+        let a_s = model.transform_vec2(a);
+        let b_s = model.transform_vec2(b);
+        let c_s = model.transform_vec2(c);
+
+        // Reject non-finite inputs or degenerate triangles.
+        if !a_s.x.is_finite()
+            || !a_s.y.is_finite()
+            || !b_s.x.is_finite()
+            || !b_s.y.is_finite()
+            || !c_s.x.is_finite()
+            || !c_s.y.is_finite()
+        {
+            return;
+        }
+
+        let area2 = (b_s - a_s).cross(c_s - a_s);
+        if !area2.is_finite() || area2.abs() < 1e-6 {
+            return;
+        }
+        // Barycentric weights via edge functions (same math as `math::barycentric`,
+        // kept inline to avoid per-pixel Vec2 temporaries/Option checks). Precompute
+        // the reciprocal area once for reuse in the inner loop.
+        let inv_area = 1.0 / area2;
+        let area_pos = area2 > 0.0;
+
+        // Integer bounding box (half-open) clamped to the framebuffer; scissor is enforced per-pixel.
+        let mut min_x = a_s.x.min(b_s.x).min(c_s.x).floor() as i32;
+        let mut max_x = a_s.x.max(b_s.x).max(c_s.x).ceil() as i32;
+        let mut min_y = a_s.y.min(b_s.y).min(c_s.y).floor() as i32;
+        let mut max_y = a_s.y.max(b_s.y).max(c_s.y).ceil() as i32;
+
+        let fb_w = self.width() as i32;
+        let fb_h = self.height() as i32;
+        min_x = min_x.clamp(0, fb_w);
+        max_x = max_x.clamp(0, fb_w);
+        min_y = min_y.clamp(0, fb_h);
+        max_y = max_y.clamp(0, fb_h);
+
+        for y in min_y..max_y {
+            for x in min_x..max_x {
+                if !self.in_scissor(x, y) {
+                    continue;
+                }
+
+                // Bias to pixel centre for renderer
+                let px = x as f32 + 0.5;
+                let py = y as f32 + 0.5;
+
+                // Point-in-triangle test via edge functions (same math as `math::barycentric`, but
+                // we keep the raw w0/w1/w2
+                //
+                // Computes the signed area of the parallelogram formed by:
+                // •Edge vector
+                // •Vector to the test point
+                //
+                // If result > 0  → P is on left side of edge
+                // If result < 0  → P is on right side
+                // If result = 0  → P is on the edge
+                //
+                // w0 → edge AB -> (B - A) cross (P - A)
+                // w1 → edge BC -> (C - B) cross (P - B)
+                // w2 → edge CA -> (A - C) cross (P - C)
+                let w0 = (b_s.x - a_s.x) * (py - a_s.y) - (b_s.y - a_s.y) * (px - a_s.x);
+                let w1 = (c_s.x - b_s.x) * (py - b_s.y) - (c_s.y - b_s.y) * (px - b_s.x);
+                let w2 = (a_s.x - c_s.x) * (py - c_s.y) - (a_s.y - c_s.y) * (px - c_s.x);
+
+                let inside = if area_pos {
+                    w0 >= 0.0 && w1 >= 0.0 && w2 >= 0.0
+                } else {
+                    w0 <= 0.0 && w1 <= 0.0 && w2 <= 0.0
+                };
+
+                if !inside {
+                    continue;
+                }
+
+                // Barycentric weights (sum to 1) using the precomputed inverse area.
+                let b0 = w0 * inv_area;
+                let b1 = w1 * inv_area;
+                let b2 = w2 * inv_area;
+
+                // Barycentric interpolation of UVs: uv = u0 * b0 + u1 * b1 + u2 * b2
+                let u = uv_a.x * b0 + uv_b.x * b1 + uv_c.x * b2;
+                let v = uv_a.y * b0 + uv_b.y * b1 + uv_c.y * b2;
+
+                let texel = sample_texture(texture, u, v, sampling);
+                self.set_pixel((x, y), texel);
+            }
+        }
     }
 
     #[allow(non_snake_case)]
@@ -273,6 +384,48 @@ impl<'a> Renderer<'a> {
     }
 }
 
+fn sample_texture(texture: &Texture, u: f32, v: f32, sampling: SamplingMode) -> Color {
+    let u = u.clamp(0.0, 1.0);
+    let v = v.clamp(0.0, 1.0);
+    match sampling {
+        SamplingMode::Nearest => sample_nearest(texture, u, v),
+        SamplingMode::Bilinear => sample_bilinear(texture, u, v),
+    }
+}
+
+fn sample_nearest(texture: &Texture, u: f32, v: f32) -> Color {
+    let tx = u * (texture.width() as f32 - 1.0);
+    let ty = v * (texture.height() as f32 - 1.0);
+
+    let ix = tx.round().clamp(0.0, texture.width() as f32 - 1.0) as usize;
+    let iy = ty.round().clamp(0.0, texture.height() as f32 - 1.0) as usize;
+
+    texture.get_pixel(ix, iy)
+}
+
+fn sample_bilinear(texture: &Texture, u: f32, v: f32) -> Color {
+    let tx = u * (texture.width() as f32 - 1.0);
+    let ty = v * (texture.height() as f32 - 1.0);
+
+    let x0 = tx.floor().clamp(0.0, texture.width() as f32 - 1.0) as usize;
+    let y0 = ty.floor().clamp(0.0, texture.height() as f32 - 1.0) as usize;
+    let x1 = (x0 + 1).min(texture.width() - 1);
+    let y1 = (y0 + 1).min(texture.height() - 1);
+
+    let fx = (tx - x0 as f32).clamp(0.0, 1.0);
+    let fy = (ty - y0 as f32).clamp(0.0, 1.0);
+
+    let c00 = texture.get_pixel(x0, y0);
+    let c10 = texture.get_pixel(x1, y0);
+    let c01 = texture.get_pixel(x0, y1);
+    let c11 = texture.get_pixel(x1, y1);
+
+    let top = c00.lerp(&c10, fx);
+    let bottom = c01.lerp(&c11, fx);
+
+    top.lerp(&bottom, fy)
+}
+
 // ------------------------------
 // Tests
 // ------------------------------
@@ -344,5 +497,94 @@ mod tests {
                 );
             }
         }
+    }
+
+    fn make_test_texture() -> Texture {
+        // 2x2 RGBA texture:
+        // [ (255,0,0) , (0,255,0) ]
+        // [ (0,0,255) , (255,255,255) ]
+        let data = vec![
+            255, 0, 0, 255, // top-left
+            0, 255, 0, 255, // top-right
+            0, 0, 255, 255, // bottom-left
+            255, 255, 255, 255, // bottom-right
+        ];
+        let img = crate::image::Image::new(2, 2, data, crate::image::PixelFormat::Rgba8);
+        Texture::from_image(img)
+    }
+
+    #[test]
+    fn textured_triangle_nearest_constant_uv_is_uniform() {
+        let mut fb = FrameBuffer::new(4, 4);
+        let mut r = Renderer::new(&mut fb);
+        r.clear(Color::TRANSPARENT);
+
+        let tex = make_test_texture();
+        let uv = Vec2::new(0.0, 0.0); // always sample top-left texel (red)
+
+        r.fill_triangle_textured(
+            Vec2::new(0.0, 0.0),
+            Vec2::new(3.0, 0.0),
+            Vec2::new(0.0, 3.0),
+            uv,
+            uv,
+            uv,
+            &tex,
+            SamplingMode::Nearest,
+            Mat3::IDENTITY,
+        );
+
+        let mut covered = 0;
+        for y in 0..fb.height() {
+            for x in 0..fb.width() {
+                let p = fb.get_pixel(x, y).unwrap_or(0);
+                if p != 0 {
+                    covered += 1;
+                    assert_eq!(Color::from_u32(p), Color::RED);
+                }
+            }
+        }
+        assert!(covered > 0, "Triangle should cover at least one pixel");
+    }
+
+    #[test]
+    fn textured_triangle_bilinear_constant_uv_is_average() {
+        let mut fb = FrameBuffer::new(4, 4);
+        let mut r = Renderer::new(&mut fb);
+        r.clear(Color::TRANSPARENT);
+
+        let tex = make_test_texture();
+        let uv_center = Vec2::new(0.5, 0.5); // center of the texture
+
+        r.fill_triangle_textured(
+            Vec2::new(0.0, 0.0),
+            Vec2::new(3.0, 0.0),
+            Vec2::new(0.0, 3.0),
+            uv_center,
+            uv_center,
+            uv_center,
+            &tex,
+            SamplingMode::Bilinear,
+            Mat3::IDENTITY,
+        );
+
+        let mut covered = 0;
+        let expected = Color {
+            r: 128,
+            g: 128,
+            b: 128,
+            a: 255,
+        };
+
+        for y in 0..fb.height() {
+            for x in 0..fb.width() {
+                let p = fb.get_pixel(x, y).unwrap_or(0);
+                if p != 0 {
+                    covered += 1;
+                    assert_eq!(Color::from_u32(p), expected);
+                }
+            }
+        }
+        assert!(covered > 0, "Triangle should cover at least one pixel");
     }
 }
