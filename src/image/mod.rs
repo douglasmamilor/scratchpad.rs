@@ -52,18 +52,27 @@ impl Image {
         }
     }
 
+    #[inline]
     pub fn width(&self) -> usize {
         self.width
     }
 
+    #[inline]
     pub fn height(&self) -> usize {
         self.height
     }
 
+    #[inline]
     pub fn data(&self) -> &[u8] {
         &self.data
     }
 
+    #[inline]
+    pub fn data_mut(&mut self) -> &mut [u8] {
+        &mut self.data
+    }
+
+    #[inline]
     pub fn format(&self) -> &PixelFormat {
         &self.format
     }

@@ -510,7 +510,7 @@ mod tests {
             255, 255, 255, 255, // bottom-right
         ];
         let img = crate::image::Image::new(2, 2, data, crate::image::PixelFormat::Rgba8);
-        Texture::from_image(img)
+        img.into()
     }
 
     #[test]
