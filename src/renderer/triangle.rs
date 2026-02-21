@@ -10,7 +10,7 @@ impl<'a> Renderer<'a> {
     ///
     /// # Example
     /// ```
-    /// # use scratchpad_rs::{color::Color, math::{vec2::Vec2, Mat3}};
+    /// # use scratchpad_rs::{image::Color, math::{vec2::Vec2, Mat3}};
     /// # use scratchpad_rs::framebuffer::FrameBuffer;
     /// # use scratchpad_rs::renderer::Renderer;
     /// # let mut fb = FrameBuffer::new(64, 64);
@@ -43,7 +43,7 @@ impl<'a> Renderer<'a> {
     ///
     /// # Example
     /// ```
-    /// # use scratchpad_rs::{color::Color, math::{vec2::Vec2, Mat3}};
+    /// # use scratchpad_rs::{image::Color, math::{vec2::Vec2, Mat3}};
     /// # use scratchpad_rs::framebuffer::FrameBuffer;
     /// # use scratchpad_rs::renderer::Renderer;
     /// # let mut fb = FrameBuffer::new(64, 64);
@@ -59,7 +59,7 @@ impl<'a> Renderer<'a> {
     ///
     /// # Degenerate
     /// ```
-    /// # use scratchpad_rs::{color::Color, math::{vec2::Vec2, Mat3}};
+    /// # use scratchpad_rs::{image::Color, math::{vec2::Vec2, Mat3}};
     /// # use scratchpad_rs::framebuffer::FrameBuffer;
     /// # use scratchpad_rs::renderer::Renderer;
     /// # let mut fb = FrameBuffer::new(64, 64);

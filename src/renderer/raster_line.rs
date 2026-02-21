@@ -66,7 +66,7 @@ impl<'a> Renderer<'a> {
     /// # Examples
     /// ```
     /// use scratchpad_rs::math::{IVec2, Mat3};
-    /// use scratchpad_rs::color::Color;
+/// use scratchpad_rs::image::Color;
     /// use scratchpad_rs::framebuffer::FrameBuffer;
     /// use scratchpad_rs::renderer::Renderer;
     ///

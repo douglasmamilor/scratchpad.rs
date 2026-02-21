@@ -185,7 +185,7 @@ pub fn interpolate_vec2(coords: &BarycentricCoords, a: Vec2, b: Vec2, c: Vec2) -
 ///
 /// # Example
 /// ```
-/// use scratchpad_rs::color::Color;
+/// use scratchpad_rs::image::Color;
 /// use scratchpad_rs::math::{barycentric, Vec2};
 /// let a = Vec2::new(0.0, 0.0);
 /// let b = Vec2::new(1.0, 0.0);
