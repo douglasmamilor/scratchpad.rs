@@ -12,7 +12,6 @@ pub mod transform;
 pub mod ui;
 pub mod window;
 
-// Re-export commonly used types for convenience
 pub use camera::Camera;
 pub use image::{Color, Image};
 pub use math::space::{ScreenPoint, ScreenVec2, WorldPoint, WorldVec2};
