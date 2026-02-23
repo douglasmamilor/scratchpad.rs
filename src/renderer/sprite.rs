@@ -77,7 +77,7 @@ mod tests {
     fn sprite_is_rectangular() {
         let mut fb = crate::framebuffer::FrameBuffer::new(8, 8);
         let mut r = Renderer::new(&mut fb);
-        let tex = Texture::from_image_ref(&crate::image::Image::new(
+        let tex = Texture::from(&crate::image::Image::new(
             2,
             2,
             vec![

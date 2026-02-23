@@ -23,9 +23,8 @@ impl From<Image> for Texture {
     }
 }
 
-impl Texture {
-    /// Construct a texture from a borrowed image (copies the pixel data).
-    pub fn from_image_ref(img: &Image) -> Self {
+impl From<&Image> for Texture {
+    fn from(img: &Image) -> Self {
         let width = img.width();
         let height = img.height();
         let format = *img.format();
@@ -37,7 +36,9 @@ impl Texture {
             format,
         }
     }
+}
 
+impl Texture {
     #[inline]
     pub fn width(&self) -> usize {
         self.width
