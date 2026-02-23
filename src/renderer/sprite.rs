@@ -1,5 +1,4 @@
 use super::{Renderer, SamplingMode, Texture};
-use crate::image::Color;
 use crate::math::{Mat3, Vec2};
 
 /// Simple sprite description: axis-aligned quad with UVs.
@@ -23,7 +22,7 @@ impl Sprite {
 }
 
 impl<'a> Renderer<'a> {
-    /// Draw a single textured quad with alpha blending, using two textured triangles.
+    /// Draw a single textured quad using two textured triangles.
     pub fn draw_sprite(
         &mut self,
         sprite: Sprite,
@@ -50,8 +49,9 @@ impl<'a> Renderer<'a> {
         let uv2 = Vec2::new(sprite.uv_min.x, sprite.uv_max.y);
         let uv3 = sprite.uv_max;
 
-        self.fill_triangle_textured_alpha(p0, p1, p2, uv0, uv1, uv2, texture, sampling);
-        self.fill_triangle_textured_alpha(p2, p1, p3, uv2, uv1, uv3, texture, sampling);
+        // Split along the p0-p3 diagonal for consistent mapping.
+        self.fill_triangle_textured(p0, p1, p3, uv0, uv1, uv3, texture, sampling, Mat3::IDENTITY);
+        self.fill_triangle_textured(p0, p3, p2, uv0, uv3, uv2, texture, sampling, Mat3::IDENTITY);
     }
 
     /// Draw a batch of sprites with a shared texture/sampling.
@@ -67,154 +67,36 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    fn fill_triangle_textured_alpha(
-        &mut self,
-        a: Vec2,
-        b: Vec2,
-        c: Vec2,
-        uv_a: Vec2,
-        uv_b: Vec2,
-        uv_c: Vec2,
-        texture: &Texture,
-        sampling: SamplingMode,
-    ) {
-        // Reject non-finite inputs or degenerate triangles.
-        if !a.x.is_finite()
-            || !a.y.is_finite()
-            || !b.x.is_finite()
-            || !b.y.is_finite()
-            || !c.x.is_finite()
-            || !c.y.is_finite()
-        {
-            return;
-        }
-
-        let area2 = (b - a).cross(c - a);
-        if !area2.is_finite() || area2.abs() < 1e-6 {
-            return;
-        }
-        let inv_area = 1.0 / area2;
-        let area_pos = area2 > 0.0;
-
-        // Integer bounding box (half-open) clamped to framebuffer; scissor enforced per-pixel.
-        let mut min_x = a.x.min(b.x).min(c.x).floor() as i32;
-        let mut max_x = a.x.max(b.x).max(c.x).ceil() as i32;
-        let mut min_y = a.y.min(b.y).min(c.y).floor() as i32;
-        let mut max_y = a.y.max(b.y).max(c.y).ceil() as i32;
-
-        let fb_w = self.width() as i32;
-        let fb_h = self.height() as i32;
-        min_x = min_x.clamp(0, fb_w);
-        max_x = max_x.clamp(0, fb_w);
-        min_y = min_y.clamp(0, fb_h);
-        max_y = max_y.clamp(0, fb_h);
-
-        for y in min_y..max_y {
-            for x in min_x..max_x {
-                if !self.in_scissor(x, y) {
-                    continue;
-                }
-
-                let px = x as f32 + 0.5;
-                let py = y as f32 + 0.5;
-
-                let w0 = (b.x - a.x) * (py - a.y) - (b.y - a.y) * (px - a.x);
-                let w1 = (c.x - b.x) * (py - b.y) - (c.y - b.y) * (px - b.x);
-                let w2 = (a.x - c.x) * (py - c.y) - (a.y - c.y) * (px - c.x);
-
-                let inside = if area_pos {
-                    w0 >= 0.0 && w1 >= 0.0 && w2 >= 0.0
-                } else {
-                    w0 <= 0.0 && w1 <= 0.0 && w2 <= 0.0
-                };
-
-                if !inside {
-                    continue;
-                }
-
-                let b0 = w0 * inv_area;
-                let b1 = w1 * inv_area;
-                let b2 = w2 * inv_area;
-
-                let u = uv_a.x * b0 + uv_b.x * b1 + uv_c.x * b2;
-                let v = uv_a.y * b0 + uv_b.y * b1 + uv_c.y * b2;
-
-                let src = super::triangle::sample_texture(texture, u, v, sampling);
-                self.alpha_blend_pixel(x, y, src);
-            }
-        }
-    }
-
-    #[inline]
-    fn alpha_blend_pixel(&mut self, x: i32, y: i32, src: Color) {
-        if !self.in_clip(x, y) {
-            return;
-        }
-        let dst = self
-            .framebuffer
-            .get_pixel(x as usize, y as usize)
-            .map(Color::from_u32)
-            .unwrap_or(Color::TRANSPARENT);
-
-        let sa = src.a as f32 / 255.0;
-        if sa <= 0.0 {
-            return;
-        }
-
-        let da = dst.a as f32 / 255.0;
-        let out_a = sa + da * (1.0 - sa);
-
-        let blend_chan = |s: u8, d: u8| -> u8 {
-            let sf = s as f32 / 255.0;
-            let df = d as f32 / 255.0;
-            ((sf * sa + df * (1.0 - sa)) * 255.0)
-                .round()
-                .clamp(0.0, 255.0) as u8
-        };
-
-        let out = Color {
-            r: blend_chan(src.r, dst.r),
-            g: blend_chan(src.g, dst.g),
-            b: blend_chan(src.b, dst.b),
-            a: (out_a * 255.0).round().clamp(0.0, 255.0) as u8,
-        };
-
-        self.framebuffer
-            .set_pixel(x as usize, y as usize, out.to_u32());
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::framebuffer::FrameBuffer;
-
-    fn make_rgba_texture(w: usize, h: usize, pixels: Vec<u8>) -> Texture {
-        let img = crate::image::Image::new(w, h, pixels, crate::image::PixelFormat::Rgba8);
-        Texture::from(img)
-    }
 
     #[test]
-    fn sprite_alpha_blends_over_bg() {
-        let mut fb = FrameBuffer::new(4, 4);
+    fn sprite_is_rectangular() {
+        let mut fb = crate::framebuffer::FrameBuffer::new(8, 8);
         let mut r = Renderer::new(&mut fb);
-        r.clear(Color::BLUE);
-
-        // 1x1 texture: semi-transparent red.
-        let tex = make_rgba_texture(1, 1, vec![255, 0, 0, 128]);
-
+        let tex = Texture::from_image_ref(&crate::image::Image::new(
+            2,
+            2,
+            vec![
+                255, 0, 0, 255, 0, 255, // row 0
+                0, 0, 255, 255, 255, 0, // row 1
+            ],
+            crate::image::PixelFormat::Rgb8,
+        ));
         let sprite = Sprite::new(
-            Vec2::new(0.0, 0.0),
+            Vec2::new(2.0, 2.0),
             Vec2::new(4.0, 4.0),
             Vec2::new(0.0, 0.0),
             Vec2::new(1.0, 1.0),
         );
-
         r.draw_sprite(sprite, &tex, SamplingMode::Nearest, Mat3::IDENTITY);
-
-        // Top-left pixel should be a blend of red over blue (half alpha): both channels non-zero.
-        let px = Color::from_u32(fb.get_pixel(0, 0).unwrap());
-        assert!(px.r > 0, "sprite red should contribute");
-        assert!(px.b > 0, "background blue should contribute");
+        // Check corners are covered.
+        assert!(fb.get_pixel(2, 2).unwrap() != 0);
+        assert!(fb.get_pixel(5, 2).unwrap() != 0);
+        assert!(fb.get_pixel(2, 5).unwrap() != 0);
+        assert!(fb.get_pixel(5, 5).unwrap() != 0);
     }
 }

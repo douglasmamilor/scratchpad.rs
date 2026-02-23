@@ -258,13 +258,14 @@ impl<'a> Renderer<'a> {
                 }
 
                 // Barycentric weights (sum to 1) using the precomputed inverse area.
-                let b0 = w0 * inv_area;
-                let b1 = w1 * inv_area;
-                let b2 = w2 * inv_area;
+                // w0 (edge AB) -> weight for C, w1 (edge BC) -> weight for A, w2 (edge CA) -> weight for B
+                let ba = w1 * inv_area;
+                let bb = w2 * inv_area;
+                let bc = w0 * inv_area;
 
-                // Barycentric interpolation of UVs: uv = u0 * b0 + u1 * b1 + u2 * b2
-                let u = uv_a.x * b0 + uv_b.x * b1 + uv_c.x * b2;
-                let v = uv_a.y * b0 + uv_b.y * b1 + uv_c.y * b2;
+                // Barycentric interpolation of UVs
+                let u = uv_a.x * ba + uv_b.x * bb + uv_c.x * bc;
+                let v = uv_a.y * ba + uv_b.y * bb + uv_c.y * bc;
 
                 let texel = sample_texture(texture, u, v, sampling);
                 self.set_pixel((x, y), texel);
