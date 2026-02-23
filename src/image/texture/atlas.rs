@@ -46,12 +46,18 @@ impl TextureAtlas {
         atlas_height: usize,
         padding: usize,
     ) -> Self {
-        assert!(!images.is_empty(), "TextureAtlas requires at least one image");
+        assert!(
+            !images.is_empty(),
+            "TextureAtlas requires at least one image"
+        );
         assert!(
             images.iter().all(|(_, img)| img.format() == &format),
             "All images must share the same format"
         );
-        assert!(atlas_width > 0 && atlas_height > 0, "Atlas dimensions must be positive");
+        assert!(
+            atlas_width > 0 && atlas_height > 0,
+            "Atlas dimensions must be positive"
+        );
         assert!(
             images
                 .iter()
@@ -63,7 +69,7 @@ impl TextureAtlas {
         let atlas_stride = atlas_width * bpp;
 
         let bytes = vec![0u8; atlas_width * atlas_height * bpp];
-        let mut atlas = Image::new(atlas_width, atlas_height, bytes, format);
+        let mut atlas_img = Image::new(atlas_width, atlas_height, bytes, format);
 
         let mut cursor_x: usize = 0;
         let mut cursor_y: usize = 0;
@@ -74,9 +80,7 @@ impl TextureAtlas {
         for (name, img) in images.iter() {
             if cursor_x + img.width() > atlas_width {
                 cursor_x = 0;
-                cursor_y = cursor_y
-                    .saturating_add(row_height)
-                    .saturating_add(padding);
+                cursor_y = cursor_y.saturating_add(row_height).saturating_add(padding);
                 row_height = 0;
             }
 
@@ -99,7 +103,7 @@ impl TextureAtlas {
                 let dst_start = (region.y + row) * atlas_stride + region.x * bpp;
                 let src_start = row * image_stride;
 
-                let dst_slice = &mut atlas.data_mut()[dst_start..dst_start + image_stride];
+                let dst_slice = &mut atlas_img.data_mut()[dst_start..dst_start + image_stride];
                 let src_slice = &img.data()[src_start..src_start + image_stride];
 
                 dst_slice.copy_from_slice(src_slice);
@@ -107,14 +111,12 @@ impl TextureAtlas {
 
             regions.insert(name.to_string(), region);
 
-            cursor_x = cursor_x
-                .saturating_add(img.width())
-                .saturating_add(padding);
+            cursor_x = cursor_x.saturating_add(img.width()).saturating_add(padding);
             row_height = row_height.max(img.height());
         }
 
         Self {
-            image: atlas,
+            image: atlas_img,
             regions,
             format,
         }
@@ -156,7 +158,12 @@ mod tests {
     #[test]
     fn packs_row_with_padding() {
         let red = Image::new(1, 1, vec![255, 0, 0, 255], PixelFormat::Rgba8);
-        let green = Image::new(2, 1, vec![0, 255, 0, 255, 0, 255, 0, 255], PixelFormat::Rgba8);
+        let green = Image::new(
+            2,
+            1,
+            vec![0, 255, 0, 255, 0, 255, 0, 255],
+            PixelFormat::Rgba8,
+        );
 
         let atlas = TextureAtlas::from_named(
             &[("red", &red), ("green", &green)],
