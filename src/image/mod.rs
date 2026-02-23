@@ -1,10 +1,12 @@
 mod bitmap;
 pub mod color;
+pub mod loader;
 mod texture;
 
 pub use bitmap::BitmapDecoder;
 pub use color::Color;
-pub use texture::Texture;
+pub use loader::ImageLoader;
+pub use texture::{AtlasRegion, Texture, TextureAtlas};
 
 pub struct Image {
     width: usize,

@@ -384,7 +384,7 @@ impl<'a> Renderer<'a> {
     }
 }
 
-fn sample_texture(texture: &Texture, u: f32, v: f32, sampling: SamplingMode) -> Color {
+pub(crate) fn sample_texture(texture: &Texture, u: f32, v: f32, sampling: SamplingMode) -> Color {
     let u = u.clamp(0.0, 1.0);
     let v = v.clamp(0.0, 1.0);
     match sampling {

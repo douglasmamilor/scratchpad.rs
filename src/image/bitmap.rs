@@ -17,6 +17,11 @@ impl<'a> BitmapDecoder<'a> {
         Self::make_bitmap(file_bytes)
     }
 
+    /// Alias for `new` for clarity at call sites.
+    pub fn from_bytes(file_bytes: &'a [u8]) -> Self {
+        Self::make_bitmap(file_bytes)
+    }
+
     #[inline]
     pub fn pixel_count(&self) -> usize {
         self.width * self.height

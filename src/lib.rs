@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 pub mod animation;
+pub mod asset;
 pub mod camera;
 pub mod canvas;
 pub mod framebuffer;

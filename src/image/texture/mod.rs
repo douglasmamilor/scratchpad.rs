@@ -1,5 +1,3 @@
-mod atlas;
-
 use crate::image::{Image, PixelFormat, color::Color};
 
 #[derive(Clone)]
@@ -26,6 +24,20 @@ impl From<Image> for Texture {
 }
 
 impl Texture {
+    /// Construct a texture from a borrowed image (copies the pixel data).
+    pub fn from_image_ref(img: &Image) -> Self {
+        let width = img.width();
+        let height = img.height();
+        let format = *img.format();
+        let data = img.data().to_vec();
+        Self {
+            width,
+            height,
+            data,
+            format,
+        }
+    }
+
     #[inline]
     pub fn width(&self) -> usize {
         self.width
@@ -80,3 +92,6 @@ impl Texture {
         }
     }
 }
+
+pub mod atlas;
+pub use atlas::{AtlasRegion, TextureAtlas};
