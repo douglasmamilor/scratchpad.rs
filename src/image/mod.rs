@@ -1,10 +1,16 @@
 mod bitmap;
 pub mod color;
+pub mod filter;
 pub mod loader;
 mod texture;
 
 pub use bitmap::BitmapDecoder;
 pub use color::Color;
+pub use filter::{convolve, sobel_edge_detect, EdgeMode, Kernel};
+pub use filter::{
+    adjust_brightness, adjust_contrast, adjust_gamma, adjust_saturation, grayscale, invert,
+    posterize, sepia, threshold,
+};
 pub use loader::ImageLoader;
 pub use texture::{AtlasRegion, Texture, TextureAtlas};
 
@@ -113,6 +119,40 @@ impl Image {
                 b: self.data[i],
                 a: 255,
             },
+        }
+    }
+
+    pub fn set_pixel(&mut self, x: usize, y: usize, color: Color) {
+        assert!(
+            x < self.width && y < self.height,
+            "Pixel coordinates out of bounds"
+        );
+        let bpp = self.format.bytes_per_pixel();
+        let i = (x + y * self.width) * bpp;
+
+        match self.format {
+            PixelFormat::Rgb8 => {
+                self.data[i] = color.r;
+                self.data[i + 1] = color.g;
+                self.data[i + 2] = color.b;
+            }
+            PixelFormat::Rgba8 => {
+                self.data[i] = color.r;
+                self.data[i + 1] = color.g;
+                self.data[i + 2] = color.b;
+                self.data[i + 3] = color.a;
+            }
+            PixelFormat::Bgra8 => {
+                self.data[i] = color.b;
+                self.data[i + 1] = color.g;
+                self.data[i + 2] = color.r;
+                self.data[i + 3] = color.a;
+            }
+            PixelFormat::Bgr8 => {
+                self.data[i] = color.b;
+                self.data[i + 1] = color.g;
+                self.data[i + 2] = color.r;
+            }
         }
     }
 }
