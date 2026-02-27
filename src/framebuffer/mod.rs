@@ -1,5 +1,5 @@
-pub mod depth_buffer;
-pub mod depth_state;
+mod depth_buffer;
+mod depth_state;
 
 pub use depth_buffer::DepthBuffer;
 pub use depth_state::{DepthFunc, DepthState};
@@ -11,7 +11,7 @@ pub struct FrameBuffer {
     width: usize,
     height: usize,
     pitch: usize,
-    pub pixels: Vec<u32>, // ARGB8888
+    pub(crate) pixels: Vec<u32>, // ARGB8888
 }
 
 impl FrameBuffer {
@@ -83,6 +83,16 @@ impl FrameBuffer {
                 self.pixels.len() * std::mem::size_of::<u32>(),
             )
         }
+    }
+
+    /// Borrow the raw ARGB8888 pixel buffer.
+    pub fn pixels(&self) -> &[u32] {
+        &self.pixels
+    }
+
+    /// Mutably borrow the raw ARGB8888 pixel buffer.
+    pub fn pixels_mut(&mut self) -> &mut [u32] {
+        &mut self.pixels
     }
 }
 

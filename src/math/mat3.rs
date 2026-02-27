@@ -403,7 +403,7 @@ impl Mat3 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::mat3::Mat3;
+    /// use scratchpad_rs::math::Mat3;
     /// let translate = Mat3::translate(10.0, 20.0);
     /// // This matrix will move points by (10, 20)
     /// ```
@@ -432,7 +432,7 @@ impl Mat3 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::mat3::Mat3;
+    /// use scratchpad_rs::math::Mat3;
     /// use std::f32::consts::PI;
     /// let rotate = Mat3::rotate(PI / 4.0); // 45 degrees
     /// ```
@@ -470,7 +470,7 @@ impl Mat3 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::mat3::Mat3;
+    /// use scratchpad_rs::math::Mat3;
     /// let scale = Mat3::scale(2.0, 0.5); // Double width, half height
     /// ```
     #[inline]
@@ -502,7 +502,7 @@ impl Mat3 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::mat3::Mat3;
+    /// use scratchpad_rs::math::Mat3;
     /// let scale = Mat3::scale_uniform(2.0); // Double size
     /// ```
     #[inline]
@@ -521,7 +521,7 @@ impl Mat3 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::mat3::Mat3;
+    /// use scratchpad_rs::math::Mat3;
     /// let shear = Mat3::shear(0.5, 0.0); // Shear X by 0.5
     /// ```
     #[inline]
@@ -557,7 +557,7 @@ impl Mat3 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::mat3::Mat3;
+    /// use scratchpad_rs::math::Mat3;
     /// use std::f32::consts::PI;
     /// let transform = Mat3::transform(10.0, 20.0, PI/4.0, 2.0, 1.5);
     /// ```
@@ -591,8 +591,8 @@ impl Mat3 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::mat3::Mat3;
-    /// use scratchpad_rs::math::vec2::Vec2;
+    /// use scratchpad_rs::math::Mat3;
+    /// use scratchpad_rs::math::Vec2;
     /// let translate = Mat3::translate(10.0, 20.0);
     /// let point = Vec2::new(5.0, 5.0);
     /// let transformed = translate.transform_vec2(point);
@@ -619,8 +619,8 @@ impl Mat3 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::mat3::Mat3;
-    /// use scratchpad_rs::math::vec2::Vec2;
+    /// use scratchpad_rs::math::Mat3;
+    /// use scratchpad_rs::math::Vec2;
     /// use std::f32::consts::PI;
     /// let rotate = Mat3::rotate(PI / 2.0); // 90 degrees
     /// let direction = Vec2::new(1.0, 0.0); // Right
@@ -649,7 +649,7 @@ impl Mat3 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::mat3::Mat3;
+    /// use scratchpad_rs::math::Mat3;
     /// use std::f32::consts::PI;
     ///
     /// let matrix = Mat3::translate(10.0, 20.0)
@@ -785,8 +785,8 @@ impl Mat3 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::mat3::{Mat3, Decomposition};
-    /// use scratchpad_rs::math::vec2::Vec2;
+    /// use scratchpad_rs::math::{Decomposition, Mat3};
+    /// use scratchpad_rs::math::Vec2;
     /// use std::f32::consts::PI;
     ///
     /// let original = Mat3::translate(10.0, 20.0)
@@ -871,8 +871,8 @@ impl Mat3 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::mat3::Mat3;
-    /// use scratchpad_rs::math::vec3::Vec3;
+    /// use scratchpad_rs::math::Mat3;
+    /// use scratchpad_rs::math::Vec3;
     /// let translate = Mat3::translate(10.0, 20.0);
     /// let point = Vec3::new(5.0, 5.0, 1.0);
     /// let transformed = translate.transform_vec3(point);
@@ -902,7 +902,7 @@ impl Mat3 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::mat3::Mat3;
+    /// use scratchpad_rs::math::Mat3;
     /// let scale1 = Mat3::scale(1.0, 1.0);
     /// let scale2 = Mat3::scale(2.0, 2.0);
     /// let halfway = scale1.lerp(scale2, 0.5);
@@ -942,7 +942,7 @@ impl Mat3 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::mat3::Mat3;
+    /// use scratchpad_rs::math::Mat3;
     /// use std::f32::consts::PI;
     /// let rotate1 = Mat3::rotate(0.0);
     /// let rotate2 = Mat3::rotate(PI / 2.0);

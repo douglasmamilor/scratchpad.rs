@@ -75,6 +75,17 @@ impl<'a> Renderer<'a> {
         }
     }
 
+    /// Stroke a polyline with the stroke pattern defined in `style`.
+    ///
+    /// This is a convenience wrapper that applies `style.pattern()` first and then
+    /// strokes each resulting polyline (so dash gaps don't receive joins/caps).
+    pub fn stroke_polyline_patterned(&mut self, poly: &PolyLine, style: &StrokeStyle, model: Mat3) {
+        let patterned = apply_stroke_pattern(std::slice::from_ref(poly), style.pattern(), style.space(), model);
+        for pl in &patterned {
+            self.stroke_polyline(pl, style, model);
+        }
+    }
+
     pub fn stroke_path(&mut self, path: &Path, style: &StrokeStyle, model: Mat3) {
         let Some(polylines) = self.flatten_path_to_polylines(path, style.curve_tolerance()) else {
             return;

@@ -35,7 +35,7 @@ pub struct BarycentricCoords {
 /// let b = Vec2::new(1.0, 0.0);
 /// let c = Vec2::new(0.0, 1.0);
 /// let p = Vec2::new(0.5, 0.5);
-/// let coords = barycentric::barycentric(p, a, b, c).unwrap();
+/// let coords = barycentric(p, a, b, c).unwrap();
 /// // Point at centroid: u ≈ 0.0, v ≈ 0.5, w ≈ 0.5
 /// ```
 pub fn barycentric(p: Vec2, a: Vec2, b: Vec2, c: Vec2) -> Option<BarycentricCoords> {
@@ -77,20 +77,20 @@ pub fn barycentric(p: Vec2, a: Vec2, b: Vec2, c: Vec2) -> Option<BarycentricCoor
 ///
 /// # Example
 /// ```
-/// use scratchpad_rs::math::{barycentric, Vec2};
+/// use scratchpad_rs::math::{barycentric, is_point_in_triangle, Vec2};
 /// let a = Vec2::new(0.0, 0.0);
 /// let b = Vec2::new(1.0, 0.0);
 /// let c = Vec2::new(0.0, 1.0);
 ///
 /// // Point inside triangle
 /// let p_inside = Vec2::new(0.3, 0.3);
-/// let coords_inside = barycentric::barycentric(p_inside, a, b, c).unwrap();
-/// assert!(barycentric::is_point_in_triangle(&coords_inside));
+/// let coords_inside = barycentric(p_inside, a, b, c).unwrap();
+/// assert!(is_point_in_triangle(&coords_inside));
 ///
 /// // Point outside triangle
 /// let p_outside = Vec2::new(1.5, 1.5);
-/// let coords_outside = barycentric::barycentric(p_outside, a, b, c).unwrap();
-/// assert!(!barycentric::is_point_in_triangle(&coords_outside));
+/// let coords_outside = barycentric(p_outside, a, b, c).unwrap();
+/// assert!(!is_point_in_triangle(&coords_outside));
 /// ```
 pub fn is_point_in_triangle(bary_coords: &BarycentricCoords) -> bool {
     bary_coords.u >= 0.0 && bary_coords.v >= 0.0 && bary_coords.w >= 0.0
@@ -114,16 +114,16 @@ pub fn is_point_in_triangle(bary_coords: &BarycentricCoords) -> bool {
 ///
 /// # Example
 /// ```
-/// use scratchpad_rs::math::{barycentric, Vec2};
+/// use scratchpad_rs::math::{barycentric, interpolate_f32, Vec2};
 /// let a = Vec2::new(0.0, 0.0);
 /// let b = Vec2::new(1.0, 0.0);
 /// let c = Vec2::new(0.0, 1.0);
 /// let p = Vec2::new(0.5, 0.5);
-/// let coords = barycentric::barycentric(p, a, b, c).unwrap();
+/// let coords = barycentric(p, a, b, c).unwrap();
 /// let value_a = 10.0;
 /// let value_b = 20.0;
 /// let value_c = 30.0;
-/// let interpolated = barycentric::interpolate_f32(&coords, value_a, value_b, value_c);
+/// let interpolated = interpolate_f32(&coords, value_a, value_b, value_c);
 /// // Should be approximately 20.0 (midpoint)
 /// ```
 pub fn interpolate_f32(coords: &BarycentricCoords, a: f32, b: f32, c: f32) -> f32 {
@@ -150,18 +150,18 @@ pub fn interpolate_f32(coords: &BarycentricCoords, a: f32, b: f32, c: f32) -> f3
 ///
 /// # Example
 /// ```
-/// use scratchpad_rs::math::{barycentric, Vec2};
+/// use scratchpad_rs::math::{barycentric, interpolate_vec2, Vec2};
 /// let a = Vec2::new(0.0, 0.0);
 /// let b = Vec2::new(1.0, 0.0);
 /// let c = Vec2::new(0.0, 1.0);
 /// let p = Vec2::new(0.5, 0.5);
-/// let coords = barycentric::barycentric(p, a, b, c).unwrap();
+/// let coords = barycentric(p, a, b, c).unwrap();
 ///
 /// // Interpolate texture coordinates
 /// let uv_a = Vec2::new(0.0, 0.0);
 /// let uv_b = Vec2::new(1.0, 0.0);
 /// let uv_c = Vec2::new(0.0, 1.0);
-/// let interpolated_uv = barycentric::interpolate_vec2(&coords, uv_a, uv_b, uv_c);
+/// let interpolated_uv = interpolate_vec2(&coords, uv_a, uv_b, uv_c);
 /// // Result will be a blend of the three UV coordinates
 /// ```
 pub fn interpolate_vec2(coords: &BarycentricCoords, a: Vec2, b: Vec2, c: Vec2) -> Vec2 {
@@ -186,18 +186,18 @@ pub fn interpolate_vec2(coords: &BarycentricCoords, a: Vec2, b: Vec2, c: Vec2) -
 /// # Example
 /// ```
 /// use scratchpad_rs::image::Color;
-/// use scratchpad_rs::math::{barycentric, Vec2};
+/// use scratchpad_rs::math::{barycentric, interpolate_color, Vec2};
 /// let a = Vec2::new(0.0, 0.0);
 /// let b = Vec2::new(1.0, 0.0);
 /// let c = Vec2::new(0.0, 1.0);
 /// let p = Vec2::new(0.5, 0.5);
-/// let coords = barycentric::barycentric(p, a, b, c).unwrap();
+/// let coords = barycentric(p, a, b, c).unwrap();
 ///
 /// // Interpolate colors: red at A, green at B, blue at C
 /// let color_a = Color::RED;
 /// let color_b = Color::GREEN;
 /// let color_c = Color::BLUE;
-/// let interpolated = barycentric::interpolate_color(&coords, color_a, color_b, color_c);
+/// let interpolated = interpolate_color(&coords, color_a, color_b, color_c);
 /// // Result will be a blend of red, green, and blue
 /// ```
 pub fn interpolate_color(coords: &BarycentricCoords, a: Color, b: Color, c: Color) -> Color {

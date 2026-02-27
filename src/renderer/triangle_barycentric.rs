@@ -17,7 +17,7 @@ impl<'a> Renderer<'a> {
     ///
     /// # Example
     /// ```
-/// use scratchpad_rs::image::Color;
+    /// use scratchpad_rs::image::Color;
     /// use scratchpad_rs::math::{Vec2, Mat3};
     /// use scratchpad_rs::framebuffer::FrameBuffer;
     /// use scratchpad_rs::renderer::Renderer;
@@ -140,6 +140,7 @@ impl<'a> Renderer<'a> {
             #[allow(non_snake_case)]
             let color_D = barycentric::interpolate_color(&coords_d, color_a, color_b, color_c);
 
+            #[allow(non_snake_case)]
             let depth_D = barycentric::interpolate_f32(&coords_d, depth_a, depth_b, depth_c);
 
             self.fill_flat_bottom_colored(

@@ -1,10 +1,9 @@
 mod bitmap;
-pub mod color;
-pub mod filter;
-pub mod loader;
+mod color;
+mod filter;
+mod loader;
 mod texture;
 
-pub use bitmap::BitmapDecoder;
 pub use color::Color;
 pub use filter::{convolve, sobel_edge_detect, EdgeMode, Kernel};
 pub use filter::{

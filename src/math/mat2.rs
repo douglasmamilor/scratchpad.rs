@@ -34,7 +34,7 @@ impl Mat2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::mat2::Mat2;
+    /// use scratchpad_rs::math::Mat2;
     /// let m = Mat2::new(1.0, 2.0, 3.0, 4.0);
     /// assert_eq!(m.m00, 1.0);
     /// assert_eq!(m.m01, 2.0);
@@ -75,7 +75,7 @@ impl Mat2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::mat2::Mat2;
+    /// use scratchpad_rs::math::Mat2;
     /// let identity = Mat2::IDENTITY;
     /// assert_eq!(identity.det(), 1.0);
     ///
@@ -136,8 +136,8 @@ impl Mat2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::mat2::Mat2;
-    /// use scratchpad_rs::math::vec2::Vec2;
+    /// use scratchpad_rs::math::Mat2;
+    /// use scratchpad_rs::math::Vec2;
     /// use std::f32::consts::PI;
     /// let rotate_90 = Mat2::rotate(PI / 2.0);
     /// let point = Vec2::new(1.0, 0.0);  // Right

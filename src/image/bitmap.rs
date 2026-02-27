@@ -1,7 +1,7 @@
 use crate::{Image, mem::align_up_pow2};
 
 #[derive(Debug, Clone)]
-pub struct BitmapDecoder<'a> {
+pub(crate) struct BitmapDecoder<'a> {
     data_offset: usize,
 
     width: usize,
@@ -18,7 +18,7 @@ impl<'a> BitmapDecoder<'a> {
     }
 
     /// Alias for `new` for clarity at call sites.
-    pub fn from_bytes(file_bytes: &'a [u8]) -> Self {
+    pub(crate) fn from_bytes(file_bytes: &'a [u8]) -> Self {
         Self::make_bitmap(file_bytes)
     }
 

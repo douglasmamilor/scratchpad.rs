@@ -50,7 +50,7 @@ impl Vec3 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::vec3::Vec3;
+    /// use scratchpad_rs::math::Vec3;
     /// let v = Vec3::new(1.0, 2.0, 3.0);
     /// assert_eq!(v.x, 1.0);
     /// assert_eq!(v.y, 2.0);
@@ -70,7 +70,7 @@ impl Vec3 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::vec3::Vec3;
+    /// use scratchpad_rs::math::Vec3;
     /// let a = Vec3::new(1.0, 0.0, 0.0);  // X-axis
     /// let b = Vec3::new(0.0, 1.0, 0.0);  // Y-axis
     /// assert_eq!(a.dot(b), 0.0);         // Perpendicular
@@ -92,7 +92,7 @@ impl Vec3 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::vec3::Vec3;
+    /// use scratchpad_rs::math::Vec3;
     /// let x = Vec3::new(1.0, 0.0, 0.0);
     /// let y = Vec3::new(0.0, 1.0, 0.0);
     /// let z = x.cross(y);
@@ -120,7 +120,7 @@ impl Vec3 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::vec3::Vec3;
+    /// use scratchpad_rs::math::Vec3;
     /// let v = Vec3::new(3.0, 4.0, 0.0);
     /// assert_eq!(v.len(), 5.0);  // 3-4-5 triangle
     /// ```
@@ -220,7 +220,7 @@ impl Vec3 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::vec3::Vec3;
+    /// use scratchpad_rs::math::Vec3;
     /// let x = Vec3::new(1.0, 0.0, 0.0);
     /// let y = Vec3::new(0.0, 1.0, 0.0);
     /// let interpolated = x.slerp(y, 0.5);

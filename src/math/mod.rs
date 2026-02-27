@@ -1,14 +1,17 @@
-pub mod barycentric;
-pub mod consts;
-pub mod ivec2;
-pub mod mat2;
-pub mod mat3;
-pub mod space;
-pub mod util;
-pub mod vec2;
-pub mod vec3;
+pub(crate) mod barycentric;
+pub(crate) mod consts;
+pub(crate) mod ivec2;
+pub(crate) mod mat2;
+pub(crate) mod mat3;
+pub(crate) mod space;
+pub(crate) mod util;
+pub(crate) mod vec2;
+pub(crate) mod vec3;
 
-pub use barycentric::{BarycentricCoords, barycentric, is_point_in_triangle};
+pub use barycentric::{
+    BarycentricCoords, barycentric, interpolate_color, interpolate_f32, interpolate_vec2,
+    is_point_in_triangle,
+};
 pub use consts::EPS;
 pub use ivec2::IVec2;
 pub use mat2::Mat2;

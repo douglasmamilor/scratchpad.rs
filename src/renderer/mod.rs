@@ -14,11 +14,11 @@ mod texture;
 mod triangle;
 mod triangle_barycentric;
 
-pub use helpers::{quantize_hspan, quantize_point, quantize_vspan, snap_axis};
+pub(crate) use helpers::{quantize_hspan, quantize_point, quantize_vspan, snap_axis};
 pub use polygon::FillRule;
 pub use polyline::PolyLine;
 pub use sprite::Sprite;
-pub use stroke::pattern::apply_stroke_pattern;
+pub(crate) use stroke::pattern::apply_stroke_pattern;
 pub use stroke::types::{LineCap, LineJoin, PatternSpace, StrokePattern, StrokeSpace, StrokeStyle};
 pub use texture::{SamplingMode, Texture};
 

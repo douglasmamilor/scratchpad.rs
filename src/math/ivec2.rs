@@ -26,7 +26,7 @@ impl IVec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::ivec2::IVec2;
+    /// use scratchpad_rs::math::IVec2;
     /// let v = IVec2::new(3, 4);
     /// assert_eq!(v.x, 3);
     /// assert_eq!(v.y, 4);
@@ -45,7 +45,7 @@ impl IVec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::ivec2::IVec2;
+    /// use scratchpad_rs::math::IVec2;
     /// let a = IVec2::new(1, 0);  // Right
     /// let b = IVec2::new(0, 1);  // Up
     /// assert_eq!(a.dot(b), 0);   // Perpendicular
@@ -62,7 +62,7 @@ impl IVec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::ivec2::IVec2;
+    /// use scratchpad_rs::math::IVec2;
     /// let a = IVec2::new(1, 0);
     /// let b = IVec2::new(0, 1);
     /// assert_eq!(a.cross(b), 1);  // Counter-clockwise
@@ -79,7 +79,7 @@ impl IVec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::ivec2::IVec2;
+    /// use scratchpad_rs::math::IVec2;
     /// let a = IVec2::new(1, 0);
     /// let b = IVec2::new(0, 1);
     /// assert_eq!(a.cross_via_perp(b), 1);
@@ -96,7 +96,7 @@ impl IVec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::ivec2::IVec2;
+    /// use scratchpad_rs::math::IVec2;
     /// let v = IVec2::new(3, 4);
     /// assert_eq!(v.len_sq(), 25);
     /// ```
@@ -112,7 +112,7 @@ impl IVec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::ivec2::IVec2;
+    /// use scratchpad_rs::math::IVec2;
     /// let v = IVec2::new(3, 4);
     /// assert!((v.len() - 5.0).abs() < 1e-6);
     /// ```
@@ -129,7 +129,7 @@ impl IVec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::ivec2::IVec2;
+    /// use scratchpad_rs::math::IVec2;
     /// let v = IVec2::new(3, 4);
     /// let normalized = v.normalize_or_zero();
     /// assert_eq!(normalized, v); // Returns original vector for integers
@@ -153,7 +153,7 @@ impl IVec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::ivec2::IVec2;
+    /// use scratchpad_rs::math::IVec2;
     /// let a = IVec2::new(3, 4);
     /// let b = IVec2::new(3, 4);
     /// assert!(a.near(b, 0.0));
@@ -170,7 +170,7 @@ impl IVec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::ivec2::IVec2;
+    /// use scratchpad_rs::math::IVec2;
     /// let a = IVec2::new(0, 0);
     /// let b = IVec2::new(10, 20);
     /// let result = a.lerp(b, 0.5);
@@ -191,7 +191,7 @@ impl IVec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::ivec2::IVec2;
+    /// use scratchpad_rs::math::IVec2;
     /// let v = IVec2::new(1, 0);  // Right
     /// let perp = v.perp();
     /// assert_eq!(perp, IVec2::new(0, 1));  // Up
@@ -211,7 +211,7 @@ impl IVec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::ivec2::IVec2;
+    /// use scratchpad_rs::math::IVec2;
     /// let v = IVec2::new(1, -1);  // Moving down-right
     /// let normal = IVec2::new(0, 1);  // Surface pointing up
     /// let reflected = v.reflect(normal);
@@ -229,7 +229,7 @@ impl IVec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::ivec2::IVec2;
+    /// use scratchpad_rs::math::IVec2;
     /// let v = IVec2::new(1, 0);
     /// assert!((v.angle() - 0.0).abs() < 1e-6);
     /// ```
@@ -242,7 +242,7 @@ impl IVec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::ivec2::IVec2;
+    /// use scratchpad_rs::math::IVec2;
     /// let v = IVec2::from_angle(0.0);
     /// assert_eq!(v, IVec2::new(1, 0));
     /// ```
@@ -258,7 +258,7 @@ impl IVec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::ivec2::IVec2;
+    /// use scratchpad_rs::math::IVec2;
     /// let a = IVec2::new(0, 0);
     /// let b = IVec2::new(3, 4);
     /// assert!((a.distance(b) - 5.0).abs() < 1e-6);

@@ -26,7 +26,7 @@ impl Vec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::vec2::Vec2;
+    /// use scratchpad_rs::math::Vec2;
     /// let v = Vec2::new(3.0, 4.0);
     /// assert_eq!(v.x, 3.0);
     /// assert_eq!(v.y, 4.0);
@@ -45,7 +45,7 @@ impl Vec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::vec2::Vec2;
+    /// use scratchpad_rs::math::Vec2;
     /// let a = Vec2::new(1.0, 0.0);  // Right
     /// let b = Vec2::new(0.0, 1.0);  // Up
     /// assert_eq!(a.dot(b), 0.0);    // Perpendicular
@@ -65,7 +65,7 @@ impl Vec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::vec2::Vec2;
+    /// use scratchpad_rs::math::Vec2;
     /// let right = Vec2::new(1.0, 0.0);
     /// let up = Vec2::new(0.0, 1.0);
     /// assert_eq!(right.cross(up), 1.0);   // Right to up is counter-clockwise
@@ -98,7 +98,7 @@ impl Vec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::vec2::Vec2;
+    /// use scratchpad_rs::math::Vec2;
     /// let v = Vec2::new(3.0, 4.0);
     /// assert_eq!(v.len(), 5.0);  // 3-4-5 triangle
     /// ```
@@ -114,7 +114,7 @@ impl Vec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::vec2::Vec2;
+    /// use scratchpad_rs::math::Vec2;
     /// let v = Vec2::new(3.0, 4.0);
     /// let normalized = v.normalize_or_zero();
     /// assert_eq!(normalized.len(), 1.0);
@@ -149,7 +149,7 @@ impl Vec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::vec2::Vec2;
+    /// use scratchpad_rs::math::Vec2;
     /// let start = Vec2::new(0.0, 0.0);
     /// let end = Vec2::new(10.0, 20.0);
     /// assert_eq!(start.lerp(end, 0.0), start);
@@ -192,7 +192,7 @@ impl Vec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::vec2::Vec2;
+    /// use scratchpad_rs::math::Vec2;
     ///
     /// let v = Vec2::new(3.0, 4.0);
     /// let onto = Vec2::new(1.0, 0.0);
@@ -217,7 +217,7 @@ impl Vec2 {
     ///
     /// # Example
     /// ```
-    /// use scratchpad_rs::math::vec2::Vec2;
+    /// use scratchpad_rs::math::Vec2;
     ///
     /// let v = Vec2::new(3.0, 4.0);
     /// let from = Vec2::new(1.0, 0.0);

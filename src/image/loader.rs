@@ -1,4 +1,5 @@
-use crate::image::{BitmapDecoder, Image};
+use crate::image::Image;
+use crate::image::bitmap::BitmapDecoder;
 
 /// Image loading helpers.
 pub struct ImageLoader;
