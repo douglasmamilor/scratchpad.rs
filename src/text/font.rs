@@ -8,11 +8,11 @@ fn parse_kv(token: &str) -> Option<(&str, &str)> {
 }
 
 pub(crate) struct GlyphMetrics {
-    atlas_x: usize,
-    atlas_y: usize,
+    atlas_region_x: usize,
+    atlas_region_y: usize,
 
-    atlas_width: usize,
-    atlas_height: usize,
+    atlas_region_width: usize,
+    atlas_region_height: usize,
 
     x_offset: isize, // horizontal offset from the cursor position
     y_offset: isize, // vertical offset from the baseline
@@ -68,10 +68,10 @@ impl BitmapFont {
                 }
                 "char" => {
                     let mut id: Option<u32> = None;
-                    let mut atlas_x: Option<usize> = None;
-                    let mut atlas_y: Option<usize> = None;
-                    let mut atlas_width: Option<usize> = None;
-                    let mut atlas_height: Option<usize> = None;
+                    let mut atlas_region_x: Option<usize> = None;
+                    let mut atlas_region_y: Option<usize> = None;
+                    let mut atlas_region_width: Option<usize> = None;
+                    let mut atlas_region_height: Option<usize> = None;
                     let mut x_offset: Option<isize> = None;
                     let mut y_offset: Option<isize> = None;
                     let mut x_advance: Option<usize> = None;
@@ -82,10 +82,10 @@ impl BitmapFont {
                         };
                         match key {
                             "id" => id = value.parse::<u32>().ok(),
-                            "x" => atlas_x = value.parse::<usize>().ok(),
-                            "y" => atlas_y = value.parse::<usize>().ok(),
-                            "width" => atlas_width = value.parse::<usize>().ok(),
-                            "height" => atlas_height = value.parse::<usize>().ok(),
+                            "x" => atlas_region_x = value.parse::<usize>().ok(),
+                            "y" => atlas_region_y = value.parse::<usize>().ok(),
+                            "width" => atlas_region_width = value.parse::<usize>().ok(),
+                            "height" => atlas_region_height = value.parse::<usize>().ok(),
                             "xoffset" => x_offset = value.parse::<isize>().ok(),
                             "yoffset" => y_offset = value.parse::<isize>().ok(),
                             "xadvance" => x_advance = value.parse::<usize>().ok(),
@@ -104,10 +104,10 @@ impl BitmapFont {
                         Some(x_advance),
                     ) = (
                         id,
-                        atlas_x,
-                        atlas_y,
-                        atlas_width,
-                        atlas_height,
+                        atlas_region_x,
+                        atlas_region_y,
+                        atlas_region_width,
+                        atlas_region_height,
                         x_offset,
                         y_offset,
                         x_advance,
@@ -125,10 +125,10 @@ impl BitmapFont {
                     glyphs.insert(
                         ch,
                         GlyphMetrics {
-                            atlas_x,
-                            atlas_y,
-                            atlas_width,
-                            atlas_height,
+                            atlas_region_x: atlas_x,
+                            atlas_region_y: atlas_y,
+                            atlas_region_width: atlas_width,
+                            atlas_region_height: atlas_height,
                             x_offset,
                             y_offset,
                             x_advance,
@@ -155,7 +155,8 @@ impl BitmapFont {
                     let (Some(first), Some(second), Some(amount)) = (first, second, amount) else {
                         continue;
                     };
-                    let (Some(first), Some(second)) = (char::from_u32(first), char::from_u32(second))
+                    let (Some(first), Some(second)) =
+                        (char::from_u32(first), char::from_u32(second))
                     else {
                         continue;
                     };
@@ -233,10 +234,10 @@ kerning first=65 second=66 amount=-2
         assert_eq!(font.kerning.get(&('A', 'B')).copied(), Some(-2));
 
         let a = font.glyphs.get(&'A').unwrap();
-        assert_eq!(a.atlas_x, 1);
-        assert_eq!(a.atlas_y, 2);
-        assert_eq!(a.atlas_width, 3);
-        assert_eq!(a.atlas_height, 4);
+        assert_eq!(a.atlas_region_x, 1);
+        assert_eq!(a.atlas_region_y, 2);
+        assert_eq!(a.atlas_region_width, 3);
+        assert_eq!(a.atlas_region_height, 4);
         assert_eq!(a.x_offset, -1);
         assert_eq!(a.y_offset, 2);
         assert_eq!(a.x_advance, 5);
