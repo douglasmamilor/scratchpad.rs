@@ -10,6 +10,7 @@ mod raster_line_aa;
 mod rectangle;
 mod sprite;
 mod stroke;
+mod text;
 mod texture;
 mod triangle;
 mod triangle_barycentric;

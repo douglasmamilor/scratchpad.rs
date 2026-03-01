@@ -1,5 +1,8 @@
 use super::{Renderer, SamplingMode, Texture};
-use crate::math::{Mat3, Vec2};
+use crate::{
+    math::{Mat3, Vec2},
+    text::GlyphInstance,
+};
 
 /// Simple sprite description: axis-aligned quad with UVs.
 #[derive(Debug, Clone, Copy)]
@@ -17,6 +20,19 @@ impl Sprite {
             size,
             uv_min,
             uv_max,
+        }
+    }
+}
+
+impl From<&GlyphInstance> for Sprite {
+    fn from(glyph: &GlyphInstance) -> Self {
+        let (u0, v0, u1, v1) = glyph.uv_rect();
+
+        Self {
+            pos: glyph.position().into(),
+            size: glyph.size().into(),
+            uv_min: Vec2::new(u0, v0),
+            uv_max: Vec2::new(u1, v1),
         }
     }
 }
@@ -66,7 +82,6 @@ impl<'a> Renderer<'a> {
             self.draw_sprite(*sprite, texture, sampling, model);
         }
     }
-
 }
 
 #[cfg(test)]

@@ -14,10 +14,19 @@ pub(crate) struct GlyphMetrics {
     atlas_region_width: usize,
     atlas_region_height: usize,
 
-    x_offset: isize, // horizontal offset from the cursor position
-    y_offset: isize, // vertical offset from the baseline
+    x_offset: i32, // horizontal offset from the cursor position
+    y_offset: i32, // vertical offset from the baseline
 
-    x_advance: usize, // cursor advance after rendering this glyph
+    x_advance: i32, // cursor advance after rendering this glyph
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct GlyphInstance {
+    ch: char,
+    x: f32,
+    y: f32,
+    uv_rect: (f32, f32, f32, f32),
+    size: (usize, usize),
 }
 
 pub struct BitmapFont {
@@ -25,7 +34,77 @@ pub struct BitmapFont {
     line_height: usize,
     baseline: usize,
     glyphs: HashMap<char, GlyphMetrics>,
-    kerning: HashMap<(char, char), isize>,
+    kerning: HashMap<(char, char), i32>,
+}
+
+impl GlyphMetrics {
+    #[inline]
+    pub(crate) fn atlas_region(&self) -> (usize, usize, usize, usize) {
+        (
+            self.atlas_region_x,
+            self.atlas_region_y,
+            self.atlas_region_width,
+            self.atlas_region_height,
+        )
+    }
+
+    #[inline]
+    pub(crate) fn offset(&self) -> (i32, i32) {
+        (self.x_offset, self.y_offset)
+    }
+
+    #[inline]
+    pub(crate) fn x_advance(&self) -> i32 {
+        self.x_advance
+    }
+
+    #[inline]
+    pub(crate) fn height(&self) -> usize {
+        self.atlas_region_height
+    }
+
+    #[inline]
+    pub(crate) fn width(&self) -> usize {
+        self.atlas_region_width
+    }
+}
+
+impl GlyphInstance {
+    pub fn new(
+        ch: char,
+        x: f32,
+        y: f32,
+        uv_rect: (f32, f32, f32, f32),
+        size: (usize, usize),
+    ) -> Self {
+        Self {
+            ch,
+            x,
+            y,
+            uv_rect,
+            size,
+        }
+    }
+
+    #[inline]
+    pub fn ch(&self) -> char {
+        self.ch
+    }
+
+    #[inline]
+    pub fn position(&self) -> (f32, f32) {
+        (self.x, self.y)
+    }
+
+    #[inline]
+    pub fn uv_rect(&self) -> (f32, f32, f32, f32) {
+        self.uv_rect
+    }
+
+    #[inline]
+    pub fn size(&self) -> (usize, usize) {
+        self.size
+    }
 }
 
 impl BitmapFont {
@@ -72,9 +151,9 @@ impl BitmapFont {
                     let mut atlas_region_y: Option<usize> = None;
                     let mut atlas_region_width: Option<usize> = None;
                     let mut atlas_region_height: Option<usize> = None;
-                    let mut x_offset: Option<isize> = None;
-                    let mut y_offset: Option<isize> = None;
-                    let mut x_advance: Option<usize> = None;
+                    let mut x_offset: Option<i32> = None;
+                    let mut y_offset: Option<i32> = None;
+                    let mut x_advance: Option<i32> = None;
 
                     for token in iter {
                         let Some((key, value)) = parse_kv(token) else {
@@ -86,9 +165,9 @@ impl BitmapFont {
                             "y" => atlas_region_y = value.parse::<usize>().ok(),
                             "width" => atlas_region_width = value.parse::<usize>().ok(),
                             "height" => atlas_region_height = value.parse::<usize>().ok(),
-                            "xoffset" => x_offset = value.parse::<isize>().ok(),
-                            "yoffset" => y_offset = value.parse::<isize>().ok(),
-                            "xadvance" => x_advance = value.parse::<usize>().ok(),
+                            "xoffset" => x_offset = value.parse::<i32>().ok(),
+                            "yoffset" => y_offset = value.parse::<i32>().ok(),
+                            "xadvance" => x_advance = value.parse::<i32>().ok(),
                             _ => {}
                         }
                     }
@@ -138,7 +217,7 @@ impl BitmapFont {
                 "kerning" => {
                     let mut first: Option<u32> = None;
                     let mut second: Option<u32> = None;
-                    let mut amount: Option<isize> = None;
+                    let mut amount: Option<i32> = None;
 
                     for token in iter {
                         let Some((key, value)) = parse_kv(token) else {
@@ -147,7 +226,7 @@ impl BitmapFont {
                         match key {
                             "first" => first = value.parse::<u32>().ok(),
                             "second" => second = value.parse::<u32>().ok(),
-                            "amount" => amount = value.parse::<isize>().ok(),
+                            "amount" => amount = value.parse::<i32>().ok(),
                             _ => {}
                         }
                     }
@@ -203,8 +282,29 @@ impl BitmapFont {
     }
 
     #[inline]
-    pub(crate) fn kerning_amount(&self, first: char, second: char) -> isize {
+    pub(crate) fn kerning_amount(&self, first: char, second: char) -> i32 {
         self.kerning.get(&(first, second)).copied().unwrap_or(0)
+    }
+
+    pub(crate) fn uv_rect(&self, ch: char) -> Option<(f32, f32, f32, f32)> {
+        let glyph = self.glyphs.get(&ch)?;
+
+        let atlas_w = self.texture.width() as f32;
+        let atlas_h = self.texture.height() as f32;
+
+        let region_x = glyph.atlas_region_x as f32;
+        let region_y = glyph.atlas_region_y as f32;
+
+        let region_w = glyph.atlas_region_width as f32;
+        let region_h = glyph.atlas_region_height as f32;
+
+        let u0 = region_x / atlas_w;
+        let v0 = region_y / atlas_h;
+
+        let u1 = (region_x + region_w) / atlas_w;
+        let v1 = (region_y + region_h) / atlas_h;
+
+        Some((u0, v0, u1, v1))
     }
 }
 

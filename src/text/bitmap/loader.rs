@@ -1,5 +1,5 @@
 use crate::Image;
-use crate::text::BitmapFont;
+use super::BitmapFont;
 
 pub(crate) struct BitmapFontLoader;
 

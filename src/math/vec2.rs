@@ -265,6 +265,23 @@ impl Vec2 {
     }
 }
 
+impl From<(usize, usize)> for Vec2 {
+    #[inline]
+    fn from(v: (usize, usize)) -> Self {
+        Self {
+            x: v.0 as f32,
+            y: v.1 as f32,
+        }
+    }
+}
+
+impl From<Vec2> for (usize, usize) {
+    #[inline]
+    fn from(v: Vec2) -> Self {
+        (v.x as usize, v.y as usize)
+    }
+}
+
 impl From<(f32, f32)> for Vec2 {
     #[inline]
     fn from(v: (f32, f32)) -> Self {

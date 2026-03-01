@@ -1,6 +1,5 @@
-mod font;
-mod layout;
-mod loader;
+mod bitmap;
 
-pub use font::BitmapFont;
-pub(crate) use loader::BitmapFontLoader;
+pub use bitmap::BitmapFont;
+pub(crate) use bitmap::BitmapFontLoader;
+pub(crate) use bitmap::GlyphInstance;
