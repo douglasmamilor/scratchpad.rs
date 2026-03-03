@@ -270,6 +270,54 @@ impl<'a> Renderer<'a> {
             .set_pixel(x as usize, y as usize, out.to_u32());
     }
 
+    /// Alpha blend `src` over the destination at (x, y) using `src.a`.
+    ///
+    /// The framebuffer is treated as opaque at the end (alpha is written as 255).
+    #[inline]
+    fn blend_src_over(&mut self, x: i32, y: i32, src: Color) {
+        if src.a == 0 {
+            return;
+        }
+        if !self.in_clip(x, y) {
+            return;
+        }
+        if src.a == 255 {
+            self.framebuffer
+                .set_pixel(x as usize, y as usize, src.to_u32());
+            return;
+        }
+
+        let cov = (src.a as f32 / 255.0).clamp(0.0, 1.0);
+        let dst = self
+            .framebuffer
+            .get_pixel(x as usize, y as usize)
+            .map(Color::from_u32)
+            .unwrap_or(Color::TRANSPARENT);
+
+        let blend_chan = |s: u8, d: u8| -> u8 {
+            if self.aa_gamma {
+                let sf = (s as f32 / 255.0).powf(2.2);
+                let df = (d as f32 / 255.0).powf(2.2);
+                let lin = sf * cov + df * (1.0 - cov);
+                (lin.powf(1.0 / 2.2) * 255.0).round().clamp(0.0, 255.0) as u8
+            } else {
+                let sf = s as f32;
+                let df = d as f32;
+                ((sf * cov + df * (1.0 - cov)).round()).clamp(0.0, 255.0) as u8
+            }
+        };
+
+        let out = Color {
+            r: blend_chan(src.r, dst.r),
+            g: blend_chan(src.g, dst.g),
+            b: blend_chan(src.b, dst.b),
+            a: 255,
+        };
+
+        self.framebuffer
+            .set_pixel(x as usize, y as usize, out.to_u32());
+    }
+
     #[inline]
     pub fn get_depth(&mut self, point: (usize, usize)) -> f32 {
         self.depth_buffer.get_depth(point.0, point.1)

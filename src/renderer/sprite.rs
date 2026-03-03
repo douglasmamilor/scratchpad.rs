@@ -1,5 +1,6 @@
 use super::{Renderer, SamplingMode, Texture};
 use crate::{
+    Color,
     math::{Mat3, Vec2},
     text::GlyphInstance,
 };
@@ -70,6 +71,60 @@ impl<'a> Renderer<'a> {
         self.fill_triangle_textured(p0, p3, p2, uv0, uv3, uv2, texture, sampling, Mat3::IDENTITY);
     }
 
+    /// Draw a single textured quad modulated by `tint`.
+    pub fn draw_sprite_tinted(
+        &mut self,
+        sprite: Sprite,
+        texture: &Texture,
+        sampling: SamplingMode,
+        tint: Color,
+        model: Mat3,
+    ) {
+        if sprite.size.x <= 0.0 || sprite.size.y <= 0.0 {
+            return;
+        }
+
+        let p0 = sprite.pos;
+        let p1 = sprite.pos + Vec2::new(sprite.size.x, 0.0);
+        let p2 = sprite.pos + Vec2::new(0.0, sprite.size.y);
+        let p3 = sprite.pos + sprite.size;
+
+        let p0 = model.transform_vec2(p0);
+        let p1 = model.transform_vec2(p1);
+        let p2 = model.transform_vec2(p2);
+        let p3 = model.transform_vec2(p3);
+
+        let uv0 = sprite.uv_min;
+        let uv1 = Vec2::new(sprite.uv_max.x, sprite.uv_min.y);
+        let uv2 = Vec2::new(sprite.uv_min.x, sprite.uv_max.y);
+        let uv3 = sprite.uv_max;
+
+        self.fill_triangle_textured_tinted(
+            p0,
+            p1,
+            p3,
+            uv0,
+            uv1,
+            uv3,
+            texture,
+            sampling,
+            tint,
+            Mat3::IDENTITY,
+        );
+        self.fill_triangle_textured_tinted(
+            p0,
+            p3,
+            p2,
+            uv0,
+            uv3,
+            uv2,
+            texture,
+            sampling,
+            tint,
+            Mat3::IDENTITY,
+        );
+    }
+
     /// Draw a batch of sprites with a shared texture/sampling.
     pub fn draw_sprite_batch(
         &mut self,
@@ -80,6 +135,20 @@ impl<'a> Renderer<'a> {
     ) {
         for sprite in sprites {
             self.draw_sprite(*sprite, texture, sampling, model);
+        }
+    }
+
+    /// Draw a batch of tinted sprites with a shared texture/sampling.
+    pub fn draw_sprite_batch_tinted(
+        &mut self,
+        sprites: &[Sprite],
+        texture: &Texture,
+        sampling: SamplingMode,
+        tint: Color,
+        model: Mat3,
+    ) {
+        for sprite in sprites {
+            self.draw_sprite_tinted(*sprite, texture, sampling, tint, model);
         }
     }
 }
@@ -113,5 +182,39 @@ mod tests {
         assert!(fb.get_pixel(5, 2).unwrap() != 0);
         assert!(fb.get_pixel(2, 5).unwrap() != 0);
         assert!(fb.get_pixel(5, 5).unwrap() != 0);
+    }
+
+    #[test]
+    fn sprite_respects_alpha_and_tint() {
+        let mut fb = crate::framebuffer::FrameBuffer::new(4, 4);
+        let mut r = Renderer::new(&mut fb);
+        r.set_triangle_aa_gamma(false);
+        r.clear(crate::Color::RED);
+
+        let tex = Texture::from(&crate::image::Image::new(
+            1,
+            1,
+            vec![255, 255, 255, 0], // fully transparent white
+            crate::image::PixelFormat::Rgba8,
+        ));
+
+        let sprite = Sprite::new(
+            Vec2::new(1.0, 1.0),
+            Vec2::new(2.0, 2.0),
+            Vec2::new(0.0, 0.0),
+            Vec2::new(1.0, 1.0),
+        );
+
+        r.draw_sprite_tinted(sprite, &tex, SamplingMode::Nearest, crate::Color::BLACK, Mat3::IDENTITY);
+        assert_eq!(r.get_pixel((1, 1)).unwrap(), crate::Color::RED);
+
+        let tex2 = Texture::from(&crate::image::Image::new(
+            1,
+            1,
+            vec![255, 255, 255, 255], // opaque white
+            crate::image::PixelFormat::Rgba8,
+        ));
+        r.draw_sprite_tinted(sprite, &tex2, SamplingMode::Nearest, crate::Color::BLACK, Mat3::IDENTITY);
+        assert_eq!(r.get_pixel((1, 1)).unwrap(), crate::Color::BLACK);
     }
 }

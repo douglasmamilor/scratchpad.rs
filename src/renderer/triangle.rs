@@ -268,7 +268,105 @@ impl<'a> Renderer<'a> {
                 let v = uv_a.y * ba + uv_b.y * bb + uv_c.y * bc;
 
                 let texel = sample_texture(texture, u, v, sampling);
-                self.set_pixel((x, y), texel);
+                self.blend_src_over(x, y, texel);
+            }
+        }
+    }
+
+    /// Fill a triangle with a texture using barycentric UVs, modulated by `tint`.
+    ///
+    /// This is the same as `fill_triangle_textured`, but applies a simple per-texel modulation:
+    /// `out.rgb = texel.rgb * tint.rgb` and `out.a = texel.a * tint.a`.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn fill_triangle_textured_tinted(
+        &mut self,
+        a: Vec2,
+        b: Vec2,
+        c: Vec2,
+        uv_a: Vec2,
+        uv_b: Vec2,
+        uv_c: Vec2,
+        texture: &Texture,
+        sampling: SamplingMode,
+        tint: Color,
+        model: Mat3,
+    ) {
+        let a_s = model.transform_vec2(a);
+        let b_s = model.transform_vec2(b);
+        let c_s = model.transform_vec2(c);
+
+        if !a_s.x.is_finite()
+            || !a_s.y.is_finite()
+            || !b_s.x.is_finite()
+            || !b_s.y.is_finite()
+            || !c_s.x.is_finite()
+            || !c_s.y.is_finite()
+        {
+            return;
+        }
+
+        let area2 = (b_s - a_s).cross(c_s - a_s);
+        if !area2.is_finite() || area2.abs() < 1e-6 {
+            return;
+        }
+        let inv_area = 1.0 / area2;
+        let area_pos = area2 > 0.0;
+
+        let mut min_x = a_s.x.min(b_s.x).min(c_s.x).floor() as i32;
+        let mut max_x = a_s.x.max(b_s.x).max(c_s.x).ceil() as i32;
+        let mut min_y = a_s.y.min(b_s.y).min(c_s.y).floor() as i32;
+        let mut max_y = a_s.y.max(b_s.y).max(c_s.y).ceil() as i32;
+
+        let fb_w = self.width() as i32;
+        let fb_h = self.height() as i32;
+        min_x = min_x.clamp(0, fb_w);
+        max_x = max_x.clamp(0, fb_w);
+        min_y = min_y.clamp(0, fb_h);
+        max_y = max_y.clamp(0, fb_h);
+
+        #[inline]
+        fn mul8(a: u8, b: u8) -> u8 {
+            ((a as u16 * b as u16 + 127) / 255) as u8
+        }
+
+        for y in min_y..max_y {
+            for x in min_x..max_x {
+                if !self.in_scissor(x, y) {
+                    continue;
+                }
+
+                let px = x as f32 + 0.5;
+                let py = y as f32 + 0.5;
+
+                let w0 = (b_s.x - a_s.x) * (py - a_s.y) - (b_s.y - a_s.y) * (px - a_s.x);
+                let w1 = (c_s.x - b_s.x) * (py - b_s.y) - (c_s.y - b_s.y) * (px - b_s.x);
+                let w2 = (a_s.x - c_s.x) * (py - c_s.y) - (a_s.y - c_s.y) * (px - c_s.x);
+
+                let inside = if area_pos {
+                    w0 >= 0.0 && w1 >= 0.0 && w2 >= 0.0
+                } else {
+                    w0 <= 0.0 && w1 <= 0.0 && w2 <= 0.0
+                };
+
+                if !inside {
+                    continue;
+                }
+
+                let ba = w1 * inv_area;
+                let bb = w2 * inv_area;
+                let bc = w0 * inv_area;
+
+                let u = uv_a.x * ba + uv_b.x * bb + uv_c.x * bc;
+                let v = uv_a.y * ba + uv_b.y * bb + uv_c.y * bc;
+
+                let texel = sample_texture(texture, u, v, sampling);
+                let modulated = Color {
+                    r: mul8(texel.r, tint.r),
+                    g: mul8(texel.g, tint.g),
+                    b: mul8(texel.b, tint.b),
+                    a: mul8(texel.a, tint.a),
+                };
+                self.blend_src_over(x, y, modulated);
             }
         }
     }
@@ -587,5 +685,37 @@ mod tests {
             }
         }
         assert!(covered > 0, "Triangle should cover at least one pixel");
+    }
+
+    #[test]
+    fn textured_triangle_alpha_blends() {
+        let mut fb = FrameBuffer::new(4, 4);
+        let mut r = Renderer::new(&mut fb);
+        r.set_triangle_aa_gamma(false);
+        r.clear(Color::RED);
+
+        let tex_img = crate::image::Image::new(
+            1,
+            1,
+            vec![0, 0, 255, 128], // blue, 50% alpha
+            crate::image::PixelFormat::Rgba8,
+        );
+        let tex = Texture::from(&tex_img);
+
+        r.fill_triangle_textured(
+            Vec2::new(0.0, 0.0),
+            Vec2::new(3.0, 0.0),
+            Vec2::new(0.0, 3.0),
+            Vec2::new(0.0, 0.0),
+            Vec2::new(1.0, 0.0),
+            Vec2::new(0.0, 1.0),
+            &tex,
+            SamplingMode::Nearest,
+            Mat3::IDENTITY,
+        );
+
+        let c = Color::from_u32(fb.get_pixel(1, 1).unwrap());
+        // cov = 128/255, so red becomes 255*(1-cov)=127 and blue becomes 255*cov=128.
+        assert_eq!(c, Color::RGBA(127, 0, 128, 255));
     }
 }
