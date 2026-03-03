@@ -2,6 +2,7 @@ use super::{BitmapFont, GlyphInstance};
 use crate::{Rect, Vec2, ui::Anchor};
 use super::font::GlyphMetrics;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TextAlign {
     Left,
     Center,
