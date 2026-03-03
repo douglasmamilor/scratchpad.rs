@@ -1,4 +1,4 @@
-use crate::{BitmapFont, Color, Mat3, renderer::Renderer, text::GlyphInstance};
+use crate::{BitmapFont, Mat3, renderer::Renderer, text::GlyphInstance};
 
 impl<'a> Renderer<'a> {
     // TODO: (doug) - support color tinting for text rendering
@@ -9,11 +9,12 @@ impl<'a> Renderer<'a> {
         model: Mat3,
     ) {
         let instances = instances.as_ref();
+        let atlas_texture = super::Texture::from(font.atlas());
 
         for instance in instances {
             self.draw_sprite(
                 instance.into(),
-                &font.atlas().into(),
+                &atlas_texture,
                 super::SamplingMode::Nearest,
                 model,
             );

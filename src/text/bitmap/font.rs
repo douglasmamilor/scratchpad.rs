@@ -14,10 +14,18 @@ pub(crate) struct GlyphMetrics {
     atlas_region_width: usize,
     atlas_region_height: usize,
 
-    x_offset: i32, // horizontal offset from the cursor position
-    y_offset: i32, // vertical offset from the baseline
+    // Offset from the "pen position" (cursor) to the glyph bitmap's top-left (in pixels).
+    x_offset: i32,
+    // Raw BMFont `yoffset`: vertical offset from the top of the line box to the glyph bitmap's
+    // top-left (in pixels). In screen space (Y down), this is typically positive.
+    y_offset_raw: i32,
+    // Baseline-relative vertical offset to the glyph bitmap's top-left (in pixels).
+    // Derived from BMFont's top-relative `yoffset` by: `y_offset_from_baseline = yoffset - base`.
+    // In screen space (Y down), this is typically negative for glyphs above the baseline.
+    y_offset_from_baseline: i32,
 
-    x_advance: i32, // cursor advance after rendering this glyph
+    // Cursor advance after rendering this glyph (in pixels).
+    x_advance: i32,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -49,8 +57,13 @@ impl GlyphMetrics {
     }
 
     #[inline]
-    pub(crate) fn offset(&self) -> (i32, i32) {
-        (self.x_offset, self.y_offset)
+    pub(crate) fn offset_from_baseline(&self) -> (i32, i32) {
+        (self.x_offset, self.y_offset_from_baseline)
+    }
+
+    #[inline]
+    pub(crate) fn offset_raw(&self) -> (i32, i32) {
+        (self.x_offset, self.y_offset_raw)
     }
 
     #[inline]
@@ -152,7 +165,7 @@ impl BitmapFont {
                     let mut atlas_region_width: Option<usize> = None;
                     let mut atlas_region_height: Option<usize> = None;
                     let mut x_offset: Option<i32> = None;
-                    let mut y_offset: Option<i32> = None;
+                    let mut y_offset_raw: Option<i32> = None;
                     let mut x_advance: Option<i32> = None;
 
                     for token in iter {
@@ -166,7 +179,7 @@ impl BitmapFont {
                             "width" => atlas_region_width = value.parse::<usize>().ok(),
                             "height" => atlas_region_height = value.parse::<usize>().ok(),
                             "xoffset" => x_offset = value.parse::<i32>().ok(),
-                            "yoffset" => y_offset = value.parse::<i32>().ok(),
+                            "yoffset" => y_offset_raw = value.parse::<i32>().ok(),
                             "xadvance" => x_advance = value.parse::<i32>().ok(),
                             _ => {}
                         }
@@ -179,7 +192,7 @@ impl BitmapFont {
                         Some(atlas_width),
                         Some(atlas_height),
                         Some(x_offset),
-                        Some(y_offset),
+                        Some(y_offset_raw),
                         Some(x_advance),
                     ) = (
                         id,
@@ -188,7 +201,7 @@ impl BitmapFont {
                         atlas_region_width,
                         atlas_region_height,
                         x_offset,
-                        y_offset,
+                        y_offset_raw,
                         x_advance,
                     )
                     else {
@@ -209,7 +222,8 @@ impl BitmapFont {
                             atlas_region_width: atlas_width,
                             atlas_region_height: atlas_height,
                             x_offset,
-                            y_offset,
+                            y_offset_raw,
+                            y_offset_from_baseline: 0,
                             x_advance,
                         },
                     );
@@ -250,6 +264,13 @@ impl BitmapFont {
         }
         if baseline == 0 {
             baseline = line_height;
+        }
+
+        // Convert BMFont `yoffset` (top-of-line → glyph-top) into baseline-relative offsets
+        // (baseline → glyph-top) so layout code can be baseline-aware.
+        let baseline_i32 = baseline as i32;
+        for glyph in glyphs.values_mut() {
+            glyph.y_offset_from_baseline = glyph.y_offset_raw - baseline_i32;
         }
 
         Self {
@@ -339,7 +360,25 @@ kerning first=65 second=66 amount=-2
         assert_eq!(a.atlas_region_width, 3);
         assert_eq!(a.atlas_region_height, 4);
         assert_eq!(a.x_offset, -1);
-        assert_eq!(a.y_offset, 2);
+        assert_eq!(a.y_offset_raw, 2);
+        assert_eq!(a.y_offset_from_baseline, 2 - 15);
         assert_eq!(a.x_advance, 5);
+    }
+
+    #[test]
+    fn uv_rect_is_region_normalized() {
+        let fnt = r#"
+common lineHeight=20 base=15 scaleW=64 scaleH=32 pages=1 packed=0
+chars count=1
+char id=65 x=16 y=8 width=16 height=8 xoffset=0 yoffset=0 xadvance=16 page=0 chnl=0
+"#;
+        let atlas = Image::new(64, 32, vec![0; 64 * 32 * 4], PixelFormat::Rgba8);
+        let font = BitmapFont::new(fnt, atlas);
+
+        let (u0, v0, u1, v1) = font.uv_rect('A').unwrap();
+        assert!((u0 - 0.25).abs() < 1e-6);
+        assert!((v0 - 0.25).abs() < 1e-6);
+        assert!((u1 - 0.5).abs() < 1e-6);
+        assert!((v1 - 0.5).abs() < 1e-6);
     }
 }
