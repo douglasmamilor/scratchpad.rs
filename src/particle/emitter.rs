@@ -1,6 +1,4 @@
-use rand::random_range;
-
-use crate::{Color, Vec2, particle::Particle};
+use crate::{Color, Vec2, math::Rng, particle::Particle};
 
 pub enum EmitterShape {
     Point,
@@ -38,6 +36,7 @@ pub struct Emitter {
     pub particles: Vec<Particle>,
     pub spawn_accumulator: f32,
     pub is_active: bool,
+    pub rng: Rng,
 }
 
 impl Emitter {
@@ -49,6 +48,7 @@ impl Emitter {
             particles: Vec::new(),
             spawn_accumulator: 0.0,
             is_active: true,
+            rng: Rng::default(),
         }
     }
 
@@ -185,23 +185,22 @@ impl Emitter {
     pub fn spawn_particle(&mut self) {
         let pos = match self.shape {
             EmitterShape::Point => self.position,
-            EmitterShape::Line { start, end } => start.lerp(end, random_range(0.0..1.0)),
+            EmitterShape::Line { start, end } => start.lerp(end, self.rng.range(0.0, 1.0)),
             EmitterShape::Circle { radius } => {
-                let angle = random_range(0.0..=std::f32::consts::TAU);
-                let radius = radius * random_range(0.0f32..=1.0f32).sqrt(); // Uniform distribution in
-                // circle
-                Vec2::new(angle.cos(), angle.sin()) * radius + self.position
+                let angle = self.rng.range(0.0, std::f32::consts::TAU);
+                let r = radius * self.rng.range(0.0, 1.0).sqrt(); // Uniform distribution in circle
+                Vec2::new(angle.cos(), angle.sin()) * r + self.position
             }
             EmitterShape::Rect { width, height } => {
                 Vec2::new(
-                    random_range(-width / 2.0..=width / 2.0),
-                    random_range(-height / 2.0..=height / 2.0),
+                    self.rng.range(-width / 2.0, width / 2.0),
+                    self.rng.range(-height / 2.0, height / 2.0),
                 ) + self.position
             }
         };
 
-        let speed = random_range(self.config.speed_min..=self.config.speed_max);
-        let angle = random_range(self.config.angle_min..=self.config.angle_max);
+        let speed = self.rng.range(self.config.speed_min, self.config.speed_max);
+        let angle = self.rng.range(self.config.angle_min, self.config.angle_max);
         let vel = Vec2::new(angle.cos() * speed, angle.sin() * speed);
 
         let particle = Particle {
@@ -209,11 +208,11 @@ impl Emitter {
             velocity: vel,
             acceleration: self.config.gravity,
             age: 0.0,
-            lifetime: random_range(self.config.lifetime_min..=self.config.lifetime_max),
+            lifetime: self.rng.range(self.config.lifetime_min, self.config.lifetime_max),
             color_start: self.config.color_start,
             color_end: self.config.color_end,
-            size_start: random_range(self.config.size_start_min..=self.config.size_start_max),
-            size_end: random_range(self.config.size_end_min..=self.config.size_end_max),
+            size_start: self.rng.range(self.config.size_start_min, self.config.size_start_max),
+            size_end: self.rng.range(self.config.size_end_min, self.config.size_end_max),
             rotation: 0.0,
             angular_velocity: 0.0,
         };
