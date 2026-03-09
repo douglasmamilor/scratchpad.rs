@@ -12,7 +12,7 @@ impl<'a> Renderer<'a> {
     /// # Examples
     /// ```
     /// use scratchpad_rs::math::{Vec2, Mat3};
-/// use scratchpad_rs::image::Color;
+    /// use scratchpad_rs::image::Color;
     /// use scratchpad_rs::framebuffer::FrameBuffer;
     /// use scratchpad_rs::renderer::Renderer;
     ///
@@ -70,7 +70,7 @@ impl<'a> Renderer<'a> {
     /// # Examples
     /// ```
     /// use scratchpad_rs::math::{Vec2, Mat3};
-/// use scratchpad_rs::image::Color;
+    /// use scratchpad_rs::image::Color;
     /// use scratchpad_rs::framebuffer::FrameBuffer;
     /// use scratchpad_rs::renderer::Renderer;
     ///
@@ -101,7 +101,11 @@ impl<'a> Renderer<'a> {
 
         for yi in y0i..y1i {
             for xi in x0i..x1i {
-                self.set_pixel((xi, yi), color);
+                if color.a >= 255 {
+                    self.set_pixel((xi, yi), color);
+                } else {
+                    self.blend_src_over(xi, yi, color);
+                }
             }
         }
     }
@@ -114,7 +118,7 @@ impl<'a> Renderer<'a> {
     /// # Examples
     /// ```
     /// use scratchpad_rs::math::IVec2;
-/// use scratchpad_rs::image::Color;
+    /// use scratchpad_rs::image::Color;
     /// use scratchpad_rs::framebuffer::FrameBuffer;
     /// use scratchpad_rs::renderer::Renderer;
     ///
@@ -374,5 +378,23 @@ mod tests {
         // Should round to nearest pixels
         assert!(points.contains(&(11, 10))); // 10.7 -> 11, 10.3 -> 10
         assert!(points.contains(&(15, 16))); // 15.2 -> 15, 15.8 -> 16
+    }
+
+    #[test]
+    fn fill_rect_alpha_blends_over_background() {
+        let mut fb = FrameBuffer::new(4, 4);
+        let mut renderer = Renderer::new(&mut fb);
+        renderer.set_triangle_aa_gamma(false);
+        renderer.clear(Color::RED);
+
+        renderer.fill_rect(
+            Vec2::new(0.0, 0.0),
+            Vec2::new(4.0, 4.0),
+            Color::RGBA(0, 0, 255, 128),
+            Mat3::IDENTITY,
+        );
+
+        let c = renderer.get_pixel((1, 1)).unwrap();
+        assert_eq!(c, Color::RGBA(127, 0, 128, 255));
     }
 }

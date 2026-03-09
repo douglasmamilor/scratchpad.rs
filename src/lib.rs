@@ -7,6 +7,7 @@ pub mod framebuffer;
 pub mod image;
 pub mod math;
 pub mod mem;
+pub mod particle;
 pub mod renderer;
 pub mod text;
 pub mod transform;

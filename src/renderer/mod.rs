@@ -3,6 +3,7 @@ mod debug;
 mod ellipse;
 mod fill;
 mod helpers;
+mod particle;
 mod polygon;
 mod polyline;
 mod raster_line;
