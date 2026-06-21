@@ -11,8 +11,13 @@ pub enum Edge {
 pub fn point_in_polygon(p: Point2, vertices: &[Point2]) -> bool {
     let mut crossings = 0;
 
+    assert!(
+        vertices.len() >= 3,
+        "a polygon with sides less than 3 is invalid"
+    );
+
     for i in 0..vertices.len() {
-        let (a, b) = (vertices[0], vertices[(i + 1) % vertices.len()]);
+        let (a, b) = (vertices[i], vertices[(i + 1) % vertices.len()]);
 
         if (a.y > p.y) != (b.y > p.y) {
             let t = (p.y - a.y) / (b.y - a.y);
