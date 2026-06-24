@@ -6,6 +6,35 @@ impl<'a> Renderer<'a> {
     where
         F: Fn(Color, Color) -> bool,
     {
+        fn expand_run<F>(
+            renderer: &Renderer<'_>,
+            x: i32,
+            y: i32,
+            target: Color,
+            matches: &F,
+        ) -> (i32, i32)
+        where
+            F: Fn(Color, Color) -> bool,
+        {
+            let mut xl = x;
+            while let Some(c) = renderer.get_pixel((xl - 1, y)) {
+                if !matches(c, target) {
+                    break;
+                }
+                xl -= 1;
+            }
+
+            let mut xr = x;
+            while let Some(c) = renderer.get_pixel((xr + 1, y)) {
+                if !matches(c, target) {
+                    break;
+                }
+                xr += 1;
+            }
+
+            (xl, xr)
+        }
+
         let target = match self.get_pixel(px) {
             Some(c) => c,
             None => return,
@@ -16,28 +45,8 @@ impl<'a> Renderer<'a> {
         }
 
         let (_, px_y) = px;
-        let expand_run = |x: i32, y: i32| -> (i32, i32) {
-            let mut xl = x;
-            while let Some(c) = self.get_pixel((xl - 1, y)) {
-                if !matches(c, target) {
-                    break;
-                }
-                xl -= 1;
-            }
-
-            let mut xr = x;
-            while let Some(c) = self.get_pixel((xr + 1, y)) {
-                if !matches(c, target) {
-                    break;
-                }
-                xr += 1;
-            }
-
-            (xl, xr)
-        };
-
         let mut stack: Vec<(i32, i32, i32)> = Vec::new();
-        let (xl, xr) = expand_run(px.0, px.1);
+        let (xl, xr) = expand_run(self, px.0, px.1, target, &matches);
         self.hspan(px_y, xl, xr, new_color);
         stack.push((px_y, xl, xr));
 
@@ -73,20 +82,11 @@ impl<'a> Renderer<'a> {
                         break;
                     }
 
-                    let run_start = x;
-                    while x <= scanr {
-                        if let Some(c) = self.get_pixel((x, yn)) {
-                            if matches(c, target) {
-                                x += 1;
-                                continue;
-                            }
-                        }
-                        break;
-                    }
-                    let run_end = x - 1;
+                    let (run_start, run_end) = expand_run(self, x, yn, target, &matches);
 
                     self.hspan(yn, run_start, run_end, new_color);
                     stack.push((yn, run_start, run_end));
+                    x = run_end + 1;
                 }
             }
         }
@@ -351,6 +351,32 @@ mod tests {
         // Should have filled the interior of the L-shape
         assert!(pixels.len() > 10); // More than just the outline
         assert!(pixels.contains(&(4, 4))); // Seed point should be filled
+    }
+
+    #[test]
+    fn flood_fill_expands_neighbor_runs_beyond_parent_span() {
+        let mut fb = FrameBuffer::new(40, 10);
+        {
+            let mut renderer = Renderer::new(&mut fb);
+
+            for x in 12..=22 {
+                renderer.set_pixel((x, 5), Color::WHITE);
+            }
+            for x in 5..=30 {
+                renderer.set_pixel((x, 4), Color::WHITE);
+            }
+
+            renderer.flood_fill(
+                (17, 5),
+                Color::RED,
+                |target, _new| target == Color::WHITE,
+                false,
+            );
+        }
+
+        for x in 5..=30 {
+            assert_eq!(fb.get_pixel(x as usize, 4), Some(Color::RED.to_u32()));
+        }
     }
 
     #[test]
