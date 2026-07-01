@@ -52,12 +52,9 @@ impl<'a> Renderer<'a> {
                 }
 
                 PathCommand::LineTo(p) => {
-                    if current_points.is_empty() {
-                        // implicit MoveTo
-                        current_points.push(*p);
-                    } else {
-                        current_points.push(*p);
-                    }
+                    // If the path had no starting point yet, this acts like an implicit start.
+                    // In all cases, LineTo advances the current cursor position.
+                    current_points.push(*p);
                     current_point = Some(*p);
                 }
 
