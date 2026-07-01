@@ -44,7 +44,16 @@ impl<'a> Renderer<'a> {
             }
         }
 
-        // 2) Emit joins (needs A-B-C)
+        // 2) Caps for open polylines: draw the requested cap style only at endpoints.
+        if !poly.is_closed() && style.cap() != LineCap::Butt {
+            let dir_start = pts[1] - pts[0];
+            self.emit_cap(pts[0], -dir_start, style, model);
+
+            let dir_end = pts[pts.len() - 1] - pts[pts.len() - 2];
+            self.emit_cap(pts[pts.len() - 1], dir_end, style, model);
+        }
+
+        // 3) Emit joins (needs A-B-C)
         if pts.len() < 3 {
             return;
         }
@@ -63,15 +72,6 @@ impl<'a> Renderer<'a> {
                 let c = pts[(i + 1) % pts.len()];
                 self.emit_join_abc(a, b, c, style, model);
             }
-        }
-
-        // 3) Caps for open polylines: draw the requested cap style only at endpoints.
-        if !poly.is_closed() && style.cap() != LineCap::Butt {
-            let dir_start = pts[1] - pts[0];
-            self.emit_cap(pts[0], -dir_start, style, model);
-
-            let dir_end = pts[pts.len() - 1] - pts[pts.len() - 2];
-            self.emit_cap(pts[pts.len() - 1], dir_end, style, model);
         }
     }
 
@@ -143,8 +143,8 @@ impl<'a> Renderer<'a> {
                 // Rectangle of length = half, extending outward along dir_out.
                 let p0 = pt_work + offset;
                 let p1 = pt_work - offset;
-                let p2 = pt_work - d_hat * half - offset;
-                let p3 = pt_work - d_hat * half + offset;
+                let p2 = pt_work + d_hat * half - offset;
+                let p3 = pt_work + d_hat * half + offset;
                 self.fill_triangle(p0, p1, p2, style.color(), model_for_tris);
                 self.fill_triangle(p0, p2, p3, style.color(), model_for_tris);
             }
@@ -798,5 +798,26 @@ mod tests {
         // when the model is a flip/translate. This guards against “no output”.
         assert!(count_filled(&fb_miter) > 0);
         assert!(count_filled(&fb_miter) >= count_filled(&fb_bevel));
+    }
+
+    #[test]
+    fn square_caps_extend_outward_for_open_polyline() {
+        let mut fb = FrameBuffer::new(FB, FB);
+        let mut r = Renderer::new(&mut fb);
+        r.clear(Color::TRANSPARENT);
+
+        let style = StrokeStyle::solid_screen_px(10.0, Color::WHITE).with_cap(LineCap::Square);
+        let poly = PolyLine::new(
+            vec![Point2::new(40.0, 80.0), Point2::new(80.0, 80.0)],
+            false,
+        );
+        r.stroke_polyline(&poly, &style, Mat3::IDENTITY);
+
+        // Square caps should extend beyond each endpoint in the outward
+        // direction, not inward behind it.
+        assert!(filled(&fb, 36, 80));
+        assert!(filled(&fb, 84, 80));
+        assert!(!filled(&fb, 34, 80));
+        assert!(!filled(&fb, 86, 80));
     }
 }
