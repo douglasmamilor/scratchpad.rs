@@ -12,16 +12,36 @@ pub struct Window {
 }
 
 impl Window {
-    /// Create a new window with the given title and dimensions
+    /// Create a fixed-size window with the given title and dimensions.
     pub fn new(title: &str, width: u32, height: u32) -> Result<(Self, EventPump), String> {
+        Self::create(title, width, height, false)
+    }
+
+    /// Create a user-resizable window with the given title and dimensions.
+    pub fn new_resizable(
+        title: &str,
+        width: u32,
+        height: u32,
+    ) -> Result<(Self, EventPump), String> {
+        Self::create(title, width, height, true)
+    }
+
+    fn create(
+        title: &str,
+        width: u32,
+        height: u32,
+        resizable: bool,
+    ) -> Result<(Self, EventPump), String> {
         let sdl_context = sdl2::init()?;
         let video_subsystem = sdl_context.video()?;
 
-        let window = video_subsystem
-            .window(title, width, height)
-            .position_centered()
-            .build()
-            .map_err(|e| e.to_string())?;
+        let mut window_builder = video_subsystem.window(title, width, height);
+        window_builder.position_centered();
+        if resizable {
+            window_builder.resizable();
+        }
+
+        let window = window_builder.build().map_err(|e| e.to_string())?;
 
         let canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
         let texture_creator = canvas.texture_creator();
